@@ -1,0 +1,78 @@
+services:
+  nosql-db:
+    image: mvertes/alpine-mongo
+    ports:
+      - "27018:27017"
+    container_name: nosql-db
+    volumes:
+      - ./db/:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+
+  user-service:
+    build:
+      dockerfile: Dockerfile
+      context: ./user-service
+    container_name: user-service
+    ports:
+      - "8001:8001"
+    restart: always
+    depends_on:
+      - "nosql-db"
+      - "rabbitmq"
+    volumes:
+      - .:/app/
+      - /app/user-service/node_modules
+    env_file:
+      - ./user-service/.env.dev
+
+  #product-service:
+  #  build:
+  #    dockerfile: Dockerfile
+  #    context: ./product-service
+  #  container_name: product-service
+  #  ports:
+  #    - "8002:8002"
+  #  restart: always
+  #  depends_on:
+  #    - "nosql-db"
+  #    - "rabbitmq"
+  #  volumes:
+  #    - .:/app
+  #    - /app/product-service/node_modules
+  #  env_file:
+  #    - ./product-service/.env.dev
+
+  #store-service:
+  #  build:
+  #    dockerfile: Dockerfile
+  #    context: ./store-service
+  #  container_name: store
+  #  ports:
+  #    - "8003:8003"
+  #  restart: always
+  #  depends_on:
+  #    - "nosql-db"
+  #    - "rabbitmq"
+  #  volumes:
+  #    - .:/app
+  #    - /app/store/node_modules
+  #  env_file:
+  #    - ./store/.env.dev
+  
+  nginx-proxy:
+    build:
+      dockerfile: Dockerfile
+      context: ./proxy
+    depends_on:
+#      - product-service
+#      - store--service
+      - user-service
+    ports:
+#      - 80:80
+      - 8080:80
