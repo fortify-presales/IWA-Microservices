@@ -139,6 +139,11 @@ dist
 .mongod.lock
 db
 
-# Fortify
+# OpenText
 .fortify
 **/fortifypackage.zip
+**/debricked.fingerprints.txt
+fortify.env
+**/*.fpr
+**/*.pdf
+

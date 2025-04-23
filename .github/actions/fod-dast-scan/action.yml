@@ -1,0 +1,77 @@
+name: "FoD DAST Scan"
+description: "Runs a Fortify on Demand DAST Automated Scan"
+inputs:
+  working_directory:
+    required: false
+    description: "Relative directory (from root of repository) from where to run commands"
+    default: "."
+  fod_url:
+    required: false
+    description: "FoD API URI"
+    default: "https://ams.fortify.com"
+  fod_api_url:
+    required: false
+    description: "FoD API URI"
+    default: "https://api.ams.fortify.com"
+  fod_client_id:
+    required: true
+    description: "FoD API Client Id"
+  fod_client_secret:
+    required: true
+    description: "FoD API Client Secret"
+  fod_app_name:
+    required: true
+    description: "FoD Application Name"
+  fod_release_name:
+    required: true
+    description: "FoD Release Name"
+  fod_parent_release_name:
+    required: false
+    description: "FoD Parent Release Name"
+    default: "dev"
+outputs:
+  fod_scan_id:
+    description: "FoD Scan Id"
+    value: ${{ steps.fod-sast-scan.outputs.fod_scan_id }}
+runs:
+  using: "composite"
+  steps:
+    # Java is required to run the various Fortify utilities.
+    # Setup JDK 11 on host
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+    # Install Fortify tools
+    - name: Setup Fortify tools
+      uses: fortify/github-action/setup@v1
+      with:
+        export-path: true
+        fcli: latest
+    # Login to Fortify on Demand fcli session
+    - name: Login fcli
+      working-directory: ${{ env.BASE_DIR }}
+      shell: bash
+      run: |
+        fcli fod session login --url $FOD_API_URI --client-id $FOD_CLIENT_ID --client-secret $FOD_CLIENT_SECRET --fod-session github-actions
+      env:
+        FOD_API_URI: ${{ inputs.fod_api_url }}
+        FOD_CLIENT_ID: ${{ inputs.fod_client_id }}
+        FOD_CLIENT_SECRET: ${{ inputs.fod_client_secret }}
+    # Start Fortify on Demand DAST scan and wait until results complete.
+    - name: Perform FoD DAST scan
+      id: fod-dast-scan
+      working-directory: ${{ env.BASE_DIR }}
+      shell: bash
+      run: |
+        fcli fod dast-scan start --release "${FOD_RELEASE_NAME}" --store curScan --fod-session github-actions
+        sleep 10        
+        echo "fod_scan_id=$(fcli util var contents curScan -o 'expr={scanId}')" >> $GITHUB_OUTPUT
+        fcli fod dast-scan wait-for ::curScan:: --fod-session github-actions
+      env:
+        FOD_RELEASE_NAME: ${{ format('{0}:{1}', inputs.fod_app_name, inputs.fod_release_name) }}
+    # Logout/Close Fortify on Demand fcli session
+    - name: Logout fcli
+      shell: bash
+      run: |
+        fcli fod session logout --fod-session github-actions

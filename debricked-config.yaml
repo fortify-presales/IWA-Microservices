@@ -1,0 +1,13 @@
+overrides:
+  - pURL: "pkg:npm/lodash"
+    version: "1.0.0" # (optional: if left out, we will determine the version)
+    fileRegexes: # (Rust regex)
+      - "@types/lodash/.*"
+  - pURL: "pkg:maven/org.openjfx/javafx-base"
+    version: false # false means that we will determine the version
+    fileRegexes:
+      - "subpath/org.openjfx/.*"
+  - pURL: "pkg:maven/junit/junit"
+    fileRegexes:
+      - "junit-3.8.1/junit-3.8.1.jar"
+      - "junit-4.1/junit-4.1.jar"

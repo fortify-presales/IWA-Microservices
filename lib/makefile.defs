@@ -2,6 +2,9 @@ ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PROJECT := unknown
 PROJECTS := $(shell ls . | grep project)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || echo "1.0.0")
+COMMIT := $(shell git log -1 --pretty=format:"%H")
+
+-include $(ROOT_DIR)/fortify.env
 
 .PHONY: default
 default: help
@@ -70,8 +73,8 @@ swagger: ## generate swagger documentation
 	@echo "Generating swagger documentation..."
 
 .PHONY: sast-scan
-sast-scan: ## run static application security testing
-	@echo "Running static application security testing..."
+sast-scan: ## run OpenText static application security testing
+	@echo "Running OpenText static application security testing..."
 	@sourceanalyzer "-Dcom.fortify.sca.ProjectRoot=.fortify" -b "$(PROJECT)" -clean
 	@sourceanalyzer "-Dcom.fortify.sca.ProjectRoot=.fortify" -b "$(PROJECT)" -verbose -debug -exclude "**/package.json" .
 	@sourceanalyzer "-Dcom.fortify.sca.ProjectRoot=.fortify" -b "$(PROJECT)" -verbose -debug -scan \
@@ -80,5 +83,10 @@ sast-scan: ## run static application security testing
 		-build-project "$(PROJECT)" -build-version "$(VERSION)" -build-label "SNAPSHOT" \
 		-f "$(PROJECT).fpr"
 	@FPRUtility -information -analyzerIssueCounts -project "$(PROJECT).fpr"
+
+.PHONY: sca-scan
+sca-scan: ## run OpenText software composition analysis
+	@echo "Running OpenText software composition analysis..."
+	@debricked scan . -r IWA-Microservices/$(PROJECT) -c $(COMMIT) -t $(DEBRICKED_TOKEN)
 
 

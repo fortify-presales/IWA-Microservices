@@ -128,7 +128,7 @@ jobs:
           fcli fod session login --url $FOD_API_URI --client-id $FOD_CLIENT_ID --client-secret $FOD_CLIENT_SECRET --fod-session github-actions
           rm -f $PACKAGE_FILE
           debricked resolve
-          zip $PACKAGE_FILE package-lock.json debricked-config.yaml     
+          zip $PACKAGE_FILE package.json package-lock.json ../debricked-config.yaml     
           fcli fod oss-scan start --release "${FOD_RELEASE}" -f $PACKAGE_FILE --store curScan --fod-session github-actions
           sleep 10
           echo "fod_scan_id=$(fcli util var contents curScan -o 'expr={scanId}')" >> $GITHUB_OUTPUT
@@ -168,7 +168,7 @@ jobs:
         uses: actions/checkout@v4
       - name: FoD DAST scan
         id: fod-dast-scan
-        uses: fortify-presales/github-actions/fod-dast-scan@main
+        uses: ./.github/actions/fod-dast-scan
         with:
           fod_url: ${{ vars.FOD_URL }}
           fod_api_url: ${{ vars.FOD_API_URL }}
@@ -176,9 +176,6 @@ jobs:
           fod_client_secret: ${{ secrets.FOD_CLIENT_SECRET }}
           fod_app_name: ${{ format('{0}{1}:{2}', env.DEFAULT_APP_NAME, vars.FOD_APP_NAME_POSTFIX, env.DEFAULT_MICROSERVICE_NAME) }}
           fod_release_name: ${{ github.ref_name }}
-      #    fod_release_name: ${{ format('{0}#{1}', steps.fortify-app-and-rel-name.outputs.release_name, github.run_number) }}
-      #    fod_parent_release_name: ${{ steps.fortify-app-and-rel-name.outputs.parent_release_name }}
-      #    fod_parent_release_name: "dast-web-base"
 
   Security-Gate:
     runs-on: ubuntu-latest
@@ -188,7 +185,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Verify FoD Security Policy
-        uses: fortify-presales/github-actions/verify-fod-security-policy@main
+        uses: ./.github/fod-verify-security-policy
         with:
           fod_api_url: ${{ vars.FOD_API_URL }}
           fod_client_id: ${{ secrets.FOD_CLIENT_ID }}
