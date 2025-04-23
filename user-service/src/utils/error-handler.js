@@ -7,7 +7,7 @@ const LogErrors = createLogger({
       new transports.Console(),
       new transports.File({ filename: 'app_error.log' })
     ]
-  });
+});
     
 
 class ErrorLogger {

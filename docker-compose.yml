@@ -29,7 +29,7 @@ services:
       - .:/app/
       - /app/user-service/node_modules
     env_file:
-      - ./user-service/.env.dev
+      - ./user-service/.env.production
 
   #product-service:
   #  build:

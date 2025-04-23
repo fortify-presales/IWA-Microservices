@@ -9,8 +9,8 @@
     "test": "jest"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "klee2@opentext.com",
+  "license": "GPL-3.0-only",
   "dependencies": {
     "amqplib": "^0.8.0",
     "axios": "^0.21.1",

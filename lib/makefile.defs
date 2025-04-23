@@ -1,0 +1,84 @@
+ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+PROJECT := unknown
+PROJECTS := $(shell ls . | grep project)
+VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || echo "1.0.0")
+
+.PHONY: default
+default: help
+
+# generate help info from comments
+.PHONY: help
+help: ## help information about make commands
+	@grep -h -P '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: build
+build:  ## build the project
+	@echo "Building $(PROJECT)..."
+	npm install
+
+.PHONY: build-docker
+build-docker: ## build the project as a docker image
+	docker build -f Dockerfile -t $(PROJECT):$(VERSION) .
+
+.PHONY: run
+run: ## run the project
+	@echo "Running $(PROJECT)..."
+	npm run dev
+
+.PHONY: test
+test: ## run unit tests for the project
+	@echo "Testing $(PROJECT)..."
+	npm run test
+
+.PHONY: clean
+clean: ## remove temporary files
+	rm -rf db .fortify
+
+.PHONY: version
+version: ## display the version of the API server
+	@echo $(VERSION)
+
+.PHONY: db-start
+db-start: ## start the database server
+	docker compose -f $(ROOT_DIR)/docker-compose.yml up -d --build 'nosql-db'
+
+.PHONY: db-stop
+db-stop: ## stop the database server
+	docker stop nosql-db
+
+.PHONY: mq-start
+mq-start: ## start the message broker
+	docker compose -f $(ROOT_DIR)/docker-compose.yml up -d --build 'rabbitmq'
+
+.PHONY: mq-stop
+mq-stop: ## stop the message broker
+	docker stop rabbitmq
+
+.PHONY: middleware-start
+middleware-start: db-start mq-start
+
+.PHONY: middleware-stop
+middleware-stop: mq-stop db-stop
+
+.PHONY: testdata
+testdata: ## populate the database with test data
+	@echo "Populating test data..."
+#	@docker exec -it postgres psql "$(APP_DSN)" -f /testdata/testdata.sql
+
+PHONY: swagger
+swagger: ## generate swagger documentation
+	@echo "Generating swagger documentation..."
+
+.PHONY: sast-scan
+sast-scan: ## run static application security testing
+	@echo "Running static application security testing..."
+	@sourceanalyzer "-Dcom.fortify.sca.ProjectRoot=.fortify" -b "$(PROJECT)" -clean
+	@sourceanalyzer "-Dcom.fortify.sca.ProjectRoot=.fortify" -b "$(PROJECT)" -verbose -debug -exclude "**/package.json" .
+	@sourceanalyzer "-Dcom.fortify.sca.ProjectRoot=.fortify" -b "$(PROJECT)" -verbose -debug -scan \
+		-rules $(ROOT_DIR)/etc/sast-custom-rules/example-custom-rules.xml \
+		-filter $(ROOT_DIR)/etc/sast-filters/example-filter.txt \
+		-build-project "$(PROJECT)" -build-version "$(VERSION)" -build-label "SNAPSHOT" \
+		-f "$(PROJECT).fpr"
+	@FPRUtility -information -analyzerIssueCounts -project "$(PROJECT).fpr"
+
+
