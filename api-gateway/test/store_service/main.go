@@ -1,0 +1,24 @@
+package main
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+func main() {
+	// Create Gin router
+	router := gin.Default()
+
+	// Register Routes
+	router.GET("/health", health)
+
+	// Start the server
+	router.Run(":8083")
+}
+
+func health(c *gin.Context) {
+	fmt.Println("PING SUCCESS!!!")
+	c.String(http.StatusOK, "OK")
+}

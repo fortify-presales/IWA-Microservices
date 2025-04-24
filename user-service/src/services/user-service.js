@@ -20,7 +20,7 @@ class UserService {
         return FormateData(null);
     }
 
-    async SignUp(userInputs){
+    async Register(userInputs){
         const { email, password, phone } = userInputs;
         let salt = await GenerateSalt();       
         let userPassword = await GeneratePassword(password, salt);
@@ -38,15 +38,6 @@ class UserService {
     async GetProfile(id){
         const existingUser = await this.repository.FindUserById({id});
         return FormateData(existingUser);
-    }
-
-    async GetShopingDetails(id){
-        const existingUser = await this.repository.FindUserById({id});
-        if(existingUser){
-            // const orders = await this.shopingRepository.Orders(id);
-           return FormateData(existingUser);
-        }       
-        return FormateData({ msg: 'Error'});
     }
 
     async GetWishList(userId){
@@ -72,7 +63,7 @@ class UserService {
     async SubscribeEvents(payload){
         console.log('Triggering.... User Events')
         payload = JSON.parse(payload)
-        const { event, data } =  payload;
+        const { event, data } = payload;
         const { userId, product, order, qty } = data;
 
         switch (event){

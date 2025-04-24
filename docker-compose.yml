@@ -2,7 +2,7 @@ services:
   nosql-db:
     image: mvertes/alpine-mongo
     ports:
-      - "27018:27017"
+      - "27017:27017"
     container_name: nosql-db
     volumes:
       - ./db/:/data/db

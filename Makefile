@@ -1,1 +1,1 @@
-include ./lib/makefile.defs
+include ./lib/makefile-common.defs

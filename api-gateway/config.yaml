@@ -1,0 +1,31 @@
+# Configuration for API Gateway
+
+rateLimitWindow: 10s  # Adjust the rate limit window as needed
+rateLimitCount: 5
+
+# Service registration (replace with your actual service URLs)
+services:
+  user:
+    base_url: http://localhost:8001  # Base URL for the user service
+    routes:
+      - path: /health  # Route for hearbeat
+      - path: /register
+      - path: /login
+      - path: /logout
+      - path: /address
+      - path: /profile
+      - path: /wishlist
+  product:
+    base_url: http://localhost:8002  # Base URL for the product service
+    routes:
+      #- path: /health  # Route for hearbeat
+      #- path: /whoami  # Route for identification
+      - path: /api/v1/product
+  store:
+    base_url: http://localhost:8002  # Base URL for the store service
+    routes:
+      #- path: /health  # Route for hearbeat
+      #- path: /whoami  # Route for identification
+      - path: /api/v1/store
+
+     

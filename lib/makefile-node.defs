@@ -1,0 +1,26 @@
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(SELF_DIR)/lib/makefile-node.defs
+
+.PHONY: build
+build:  ## build the project
+	@echo "Building $(PROJECT)..."
+	npm install
+
+.PHONY: build-docker
+build-docker: ## build the project as a docker image
+	docker build -f Dockerfile -t $(PROJECT):$(VERSION) .
+
+.PHONY: run
+run: ## run the project
+	@echo "Running $(PROJECT)..."
+	npm run dev
+
+.PHONY: test
+test: ## run unit tests for the project
+	@echo "Testing $(PROJECT)..."
+	npm run test
+
+.PHONY: clean
+clean: ## remove temporary files
+	rm -rf db .fortify
+ 
