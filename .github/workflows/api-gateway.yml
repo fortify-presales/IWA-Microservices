@@ -102,8 +102,9 @@ jobs:
           fcli: latest
           sc-client: latest
       - name: Create FoD Upload Package
-        run: |
-          cd $SOURCE_DIR && zip -qr fortifypackage.zip $(ls -d */) go.mod Makefile
+        shell: bash
+        working-directory: ${{ env.DEFAULT_SOURCE_DIR }}
+        run: zip -qr fortifypackage.zip $(ls -d */) go.mod Makefile
         env:
           SOURCE_DIR: ${{env.DEFAULT_SOURCE_DIR}}
       - name: Perform FoD SAST Scan
@@ -117,7 +118,7 @@ jobs:
           FOD_CLIENT_SECRET: ${{secrets.FOD_CLIENT_SECRET}}
           FOD_RELEASE: ${{ format('{0}{1}:{2}:{3}', env.DEFAULT_APP_NAME, vars.FOD_APP_NAME_POSTFIX, env.DEFAULT_MICROSERVICE_NAME, github.ref_name) }}
           SETUP_EXTRA_OPTS: "--use-aviator"
-          USE_PACKAGE: fortifypackage.zip
+          USE_PACKAGE: ${{ format('{0}/{1}', env.DEFAULT_SOURCE_DIR, 'fortifypackage.zip') }}
           SOURCE_DIR: ${{env.DEFAULT_SOURCE_DIR}}
           DO_POLICY_CHECK: false  # we will do this later after SCA and DAST scan
 
