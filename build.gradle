@@ -1,0 +1,65 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.1' apply false
+    id 'io.spring.dependency-management' version '1.1.4' apply false
+    id 'com.fortify.sca.plugins.gradlebuild' version '26.1' apply false
+}
+
+
+
+allprojects {
+    group = 'com.microfocus.example'
+    version = '1.0.0-SNAPSHOT'
+    
+    apply plugin: "com.fortify.sca.plugins.gradlebuild"
+    SCAPluginExtension {
+        buildId = project.name
+        options = ["-encoding", "utf-8", "-logfile", "${project.name}.log", "-verbose"]
+    }
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    
+    java {
+        sourceCompatibility = '17'
+        targetCompatibility = '17'
+    }
+    
+    repositories {
+        mavenCentral()
+    }
+    
+    dependencies {
+        implementation 'org.slf4j:slf4j-api'
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+    
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+}
+
+// Configure Spring Boot projects (exclude contracts library and parent projects)
+configure(subprojects.findAll { 
+    it.name != 'contracts' && it.childProjects.isEmpty()
+}) {
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+    
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:3.2.1"
+        }
+    }
+    
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+}

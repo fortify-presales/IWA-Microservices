@@ -1,0 +1,27 @@
+// Configure pluginManagement so Gradle can resolve the Fortify plugin
+pluginManagement {
+	repositories {
+		// Local Fortify plugin repository (file URL). Adjust path if needed.
+		maven {
+			url uri('file:///C:/Fortify/OpenText_SAST_Fortify_26.1.0/plugins/gradle')
+		}
+		gradlePluginPortal()
+		mavenCentral()
+	}
+	// Declare the Fortify plugin version to make it available via the plugins DSL
+	plugins {
+		id 'com.fortify.sca.plugins.gradlebuild' version '26.1'
+	}
+}
+
+rootProject.name = 'iwa-microservices'
+
+include 'libs:contracts'
+include 'apps:gateway'
+include 'services:catalog'
+include 'services:orders'
+include 'services:customers'
+include 'services:inventory'
+include 'services:payments'
+include 'services:prescriptions'
+include 'services:notifications'

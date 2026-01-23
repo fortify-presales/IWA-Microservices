@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVICES_CATALOG_URL=http://catalog:8081
+      - SERVICES_CUSTOMERS_URL=http://customers:8082
+      - SERVICES_ORDERS_URL=http://orders:8083
+      - SERVICES_PAYMENTS_URL=http://payments:8084
+      - SERVICES_PRESCRIPTIONS_URL=http://prescriptions:8085
+      - SERVICES_INVENTORY_URL=http://inventory:8086
+      - SERVICES_NOTIFICATIONS_URL=http://notifications:8087
+    depends_on:
+      - catalog
+      - customers
+      - orders
+      - payments
+      - prescriptions
+      - inventory
+      - notifications
+    networks:
+      - iwa-network
+
+  catalog:
+    build:
+      context: .
+      dockerfile: services/catalog/Dockerfile
+    ports:
+      - "8081:8081"
+    networks:
+      - iwa-network
+
+  customers:
+    build:
+      context: .
+      dockerfile: services/customers/Dockerfile
+    ports:
+      - "8082:8082"
+    networks:
+      - iwa-network
+
+  orders:
+    build:
+      context: .
+      dockerfile: services/orders/Dockerfile
+    ports:
+      - "8083:8083"
+    networks:
+      - iwa-network
+
+  payments:
+    build:
+      context: .
+      dockerfile: services/payments/Dockerfile
+    ports:
+      - "8084:8084"
+    networks:
+      - iwa-network
+
+  prescriptions:
+    build:
+      context: .
+      dockerfile: services/prescriptions/Dockerfile
+    ports:
+      - "8085:8085"
+    networks:
+      - iwa-network
+
+  inventory:
+    build:
+      context: .
+      dockerfile: services/inventory/Dockerfile
+    ports:
+      - "8086:8086"
+    networks:
+      - iwa-network
+
+  notifications:
+    build:
+      context: .
+      dockerfile: services/notifications/Dockerfile
+    ports:
+      - "8087:8087"
+    networks:
+      - iwa-network
+
+networks:
+  iwa-network:
+    driver: bridge
