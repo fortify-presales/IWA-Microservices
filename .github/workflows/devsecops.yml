@@ -269,17 +269,14 @@ jobs:
         cd ${{ steps.project.outputs.path }}
         pwd
         ls -la package.zip
-        fcli fod session login \
-          --url "${{ env.FOD_URL }}" \
-          --client-id "${{ env.FOD_CLIENT_ID }}" \
-          --client-secret "${{ env.FOD_CLIENT_SECRET }}"
-        fcli fod sast-scan start --release "${{ env.FOD_APP_MS_RELEASE }}" -f package.zip --store curScan
-        fcli fod sast-scan wait-for ::curScan::
-        fcli fod session logout
+        fcli fod session login --url $FOD_API_URI --client-id $FOD_CLIENT_ID --client-secret $FOD_CLIENT_SECRET --fod-session github-actions
+        fcli fod sast-scan start --release "$FOD_APP_MS_RELEASE" -f package.zip --store curScan --fod-session github-actions
+        fcli fod sast-scan wait-for ::curScan:: --fod-session github-actions
+        fcli fod session logout --fod-session github-actions
       env:
-        FOD_URL: ${{ env.FOD_URL }}
-        FOD_CLIENT_ID: ${{ env.FOD_CLIENT_ID }}
-        FOD_CLIENT_SECRET: ${{ env.FOD_CLIENT_SECRET }}
+        FOD_API_URI: ${{ vars.FOD_API_URL }}
+        FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
+        FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
         FOD_APP_MS_RELEASE: ${{ format('{0}:{1}:{2}', env.FOD_APPLICATION, matrix.service, github.ref_name) }}
 
         
