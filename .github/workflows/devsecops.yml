@@ -256,12 +256,14 @@ jobs:
     - name: Create Fortify package
       run: |
         cd ${{ steps.project.outputs.path }}
+        pwd
         # Create the Fortify package.zip using the appropriate build commands
         scancentral package -o package.zip \
           -bt gradle \
           -bf build.gradle \
           -bc "clean build -x test" \
           -oss
+        ls -la package.zip
 
     - name: Run Fortify GitHub Action
       uses: fortify/github-action@v2
