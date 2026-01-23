@@ -266,13 +266,16 @@ jobs:
         ls -la package.zip
 
     - name: Run Fortify GitHub Action
-      uses: fortify/github-action@v2
+      #uses: fortify/github-action@v2
+      uses: fortify/github-action@feat/fcli-ci
       #continue-on-error: true   # uncomment if you want scans to be non-blocking
       with:
         # Enable SAST scan and Debricked SCA scan
         sast-scan: true
         debricked-sca-scan: true
       env:
+        FCLI_URL: https://github.com/fortify/fcli/releases/download/dev_refactor.ci-rest-helpers/fcli-linux.tgz
+        SOURCE_DIR: ${{ steps.project.outputs.path }}
         FOD_URL: ${{ vars.FOD_API_URL }}
         #FOD_TENANT: ${{secrets.FOD_TENANT}}
         #FOD_USER: ${{secrets.FOD_USER}}
