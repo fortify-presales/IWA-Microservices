@@ -276,7 +276,7 @@ jobs:
         FOD_RELEASE: ${{ format('{0}:{1}:{2}',env.FOD_APPLICATION, matrix.service, github.ref_name) }}
         DO_SETUP: true
         SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}:{1}:{2}" --sdlc-status Development --app-owner {3} --assessment-type "{4}"', env.FOD_APPLICATION, matrix.service, env.FOD_PARENT_RELEASE, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
-        PACKAGE_EXTRA_OPTS: ${{ format('-bt gradle -bf build.gradle -bc "clean {0} -x test" -oss', steps.project.outputs.target) }}
+        PACKAGE_EXTRA_OPTS: ${{ format('-bt gradle -bf build.gradle -bc "clean {0} -x test"', steps.project.outputs.target) }}
         #USE_PACKAGE: ${{ format('{0}/{1}', steps.project.outputs.path, 'package.zip') }}
         # FOD_SAST_SCAN_EXTRA_OPTS:
         DO_WAIT: true
