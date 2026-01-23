@@ -3,7 +3,7 @@ pluginManagement {
 	repositories {
 		// Local Fortify plugin repository (file URL). Adjust path if needed.
 		maven {
-			url uri('file:///C:/Fortify/OpenText_SAST_Fortify_26.1.0/plugins/gradle')
+			url uri(file('plugins/gradle').toURI())
 		}
 		gradlePluginPortal()
 		mavenCentral()
