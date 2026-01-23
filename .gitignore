@@ -61,3 +61,4 @@ dist/
 *.fpr
 *.log
 *.plugin.sca
+!plugins/gradle/com/fortify/sca-gradle-plugin/*/*.jar
