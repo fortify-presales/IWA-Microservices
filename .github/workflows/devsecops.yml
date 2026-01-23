@@ -226,6 +226,11 @@ jobs:
         java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
 
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.5'
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
