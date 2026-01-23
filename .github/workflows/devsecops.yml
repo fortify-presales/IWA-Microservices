@@ -48,9 +48,9 @@ jobs:
     - name: Set up environment variables
       id: commands
       run: |
-        echo "FOD_APPLICATION=${{ env.DEFAULT_APP_NAME }}${{ vars.FOD_APP_POSTFIX }}" >> $GITHUB_OUTPUT
+        echo "FOD_APPLICATION=${{ env.DEFAULT_APP_NAME }}${{ vars.FOD_APP_NAME_POSTFIX }}" >> $GITHUB_OUTPUT
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          echo "Running in a pull request pipeline ..."`
+          echo "Running in a pull request pipeline ..."
           echo "FOD_RELEASE=merge-to-${{ github.base_ref }}#PR${{ github.event.number }}" >> $GITHUB_OUTPUT
           echo "FOD_PARENT_RELEASE=${{ github.head_ref }}" >> $GITHUB_OUTPUT
         else
