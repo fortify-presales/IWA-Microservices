@@ -7,8 +7,11 @@ COPY build.gradle settings.gradle gradle.properties gradlew ./
 COPY libs libs
 COPY services/inventory services/inventory
 
+# Ensure the wrapper has Unix line endings (fix CRLF from Windows checkouts), then make executable
+RUN sed -i 's/\r$//' ./gradlew
 RUN chmod +x ./gradlew
-RUN ./gradlew :services:inventory:build -x test --no-daemon
+# Invoke the wrapper via the shell to avoid shebang/CRLF issues on Alpine
+RUN sh ./gradlew :services:inventory:build -x test --no-daemon
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app

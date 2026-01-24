@@ -1,157 +1,88 @@
-# Azure Container Apps Deployment
+# Azure Container Apps deployment
 
-This directory contains configuration files for deploying the IWA-Microservices microservices to Azure Container Apps.
+This directory contains an example deployment script and notes for deploying the IWA-Microservices set to Azure Container Apps.
 
-## Prerequisites
+Important: prefer running the provided PowerShell script `example.ps1` rather than running manual `az containerapp create` commands. The script handles resource-group creation, waiting for the Container Apps environment domain, and create-or-update semantics for Container Apps.
 
-1. Azure CLI installed
-2. Azure subscription
-3. Docker images built and pushed to a container registry
+Prerequisites
 
-## Deployment Steps
+- Azure CLI installed and logged in (`az login`)
+- `az` extensions for container apps installed (usually `az extension add --name containerapp`)
+- Images pushed to a registry accessible by Azure (example uses GitHub Container Registry `ghcr.io`)
+- A GitHub PAT (or alternative) with `read:packages` if using GHCR for private images
 
-### 1. Create Resource Group
+Quick usage
 
-```bash
-az group create \
-  --name iwa-microservices-rg \
-  --location eastus
+1. Edit `deploy/azure/example.ps1` and set the following variables at the top (or set them in your CI):
+
+```powershell
+$GithubOrganization = "fortify-presales"
+$DockerUsername = "<your-ghcr-username>"
+$DockerPassword = "<GHCR_PAT-or-secret>"  # prefer secrets in CI or Key Vault
+$AzureLocation = "uksouth"
+$AzureResourceGroup = "default-uk-rg"
+$AzureContainerEnvironment = "iwa-dev-uk-cae"
+$ImageTag = "main"   # tag to create or update
 ```
 
-### 2. Create Container Apps Environment
+2. Run the script from PowerShell (it will create the resource group, environment, and container apps, or update them if they already exist):
 
-```bash
-az containerapp env create \
-  --name iwa-pharmacy-env \
-  --resource-group iwa-microservices-rg \
-  --location eastus
+```powershell
+.\example.ps1
 ```
 
-### 3. Deploy Microservices
+Or pass a different tag by editing `$ImageTag` or setting it before running.
 
-Deploy each microservice as a container app:
+What the script does
+
+- Creates the resource group with `az group create` (idempotent).
+- Creates the Container Apps environment and polls for the environment's default domain.
+- For each microservice it runs a create-or-update using `az containerapp create` or `az containerapp update` and provides registry credentials so Azure can pull private GHCR images.
+- Creates/updates the gateway and injects environment variables pointing to the other services using the Container Apps environment domain.
+
+Security and CI recommendations
+
+- Do NOT store `$DockerPassword` as plaintext in repo. In CI pipelines use secret variables or Azure Key Vault.
+- For production, prefer a managed identity or service principal to give Azure access to container registry (or use Azure Container Registry with managed identity).
+- Use `az containerapp update --image` to roll out new versions; the script does this when an app already exists.
+
+Manual commands (only if you need them)
+
+If you must run commands manually, the important parts are:
 
 ```bash
-# Catalog Service
+# create RG
+az group create --name MyRg --location uksouth
+
+# create env (one-off)
+az containerapp env create --name MyEnv --resource-group MyRg --location uksouth
+
+# create a container app (example)
 az containerapp create \
   --name catalog-service \
-  --resource-group iwa-microservices-rg \
-  --environment iwa-pharmacy-env \
-  --image ghcr.io/kadraman/iwa-microservices-catalog:latest \
-  --target-port 8081 \
-  --ingress external \
-  --cpu 0.5 --memory 1.0Gi
+  --resource-group MyRg \
+  --environment MyEnv \
+  --image ghcr.io/<org>/iwa-microservices-catalog:<tag> \
+  --target-port 8081 --ingress external --cpu 0.5 --memory 1.0Gi \
+  --registry-server ghcr.io --registry-username <user> --registry-password <pat>
 
-# Customers Service
-az containerapp create \
-  --name customers-service \
-  --resource-group iwa-microservices-rg \
-  --environment iwa-pharmacy-env \
-  --image ghcr.io/kadraman/iwa-microservices-customers:latest \
-  --target-port 8082 \
-  --ingress external \
-  --cpu 0.5 --memory 1.0Gi
+# update an existing app to a new image
+az containerapp update --name catalog-service --resource-group MyRg --image ghcr.io/<org>/iwa-microservices-catalog:<tag> --registry-server ghcr.io --registry-username <user> --registry-password <pat>
 
-# Orders Service
-az containerapp create \
-  --name orders-service \
-  --resource-group iwa-microservices-rg \
-  --environment iwa-pharmacy-env \
-  --image ghcr.io/kadraman/iwa-microservices-orders:latest \
-  --target-port 8083 \
-  --ingress external \
-  --cpu 0.5 --memory 1.0Gi
-
-# Payments Service
-az containerapp create \
-  --name payments-service \
-  --resource-group iwa-microservices-rg \
-  --environment iwa-pharmacy-env \
-  --image ghcr.io/kadraman/iwa-microservices-payments:latest \
-  --target-port 8084 \
-  --ingress external \
-  --cpu 0.5 --memory 1.0Gi
-
-# Prescriptions Service
-az containerapp create \
-  --name prescriptions-service \
-  --resource-group iwa-microservices-rg \
-  --environment iwa-pharmacy-env \
-  --image ghcr.io/kadraman/iwa-microservices-prescriptions:latest \
-  --target-port 8085 \
-  --ingress external \
-  --cpu 0.5 --memory 1.0Gi
-
-# Inventory Service
-az containerapp create \
-  --name inventory-service \
-  --resource-group iwa-microservices-rg \
-  --environment iwa-pharmacy-env \
-  --image ghcr.io/kadraman/iwa-microservices-inventory:latest \
-  --target-port 8086 \
-  --ingress external \
-  --cpu 0.5 --memory 1.0Gi
-
-# Notifications Service
-az containerapp create \
-  --name notifications-service \
-  --resource-group iwa-microservices-rg \
-  --environment iwa-pharmacy-env \
-  --image ghcr.io/kadraman/iwa-microservices-notifications:latest \
-  --target-port 8087 \
-  --ingress external \
-  --cpu 0.5 --memory 1.0Gi
-
-# API Gateway
-az containerapp create \
-  --name gateway \
-  --resource-group iwa-microservices-rg \
-  --environment iwa-pharmacy-env \
-  --image ghcr.io/kadraman/iwa-microservices-gateway:latest \
-  --target-port 8080 \
-  --ingress external \
-  --cpu 0.5 --memory 1.0Gi \
-  --env-vars \
-    SERVICES_CATALOG_URL=https://catalog-service.ENVIRONMENT_DOMAIN \
-    SERVICES_CUSTOMERS_URL=https://customers-service.ENVIRONMENT_DOMAIN \
-    SERVICES_ORDERS_URL=https://orders-service.ENVIRONMENT_DOMAIN \
-    SERVICES_PAYMENTS_URL=https://payments-service.ENVIRONMENT_DOMAIN \
-    SERVICES_PRESCRIPTIONS_URL=https://prescriptions-service.ENVIRONMENT_DOMAIN \
-    SERVICES_INVENTORY_URL=https://inventory-service.ENVIRONMENT_DOMAIN \
-    SERVICES_NOTIFICATIONS_URL=https://notifications-service.ENVIRONMENT_DOMAIN
+# get gateway FQDN
+az containerapp show --name gateway --resource-group MyRg --query properties.configuration.ingress.fqdn -o tsv
 ```
 
-Replace `ENVIRONMENT_DOMAIN` with your actual Container Apps environment domain.
+Cleanup
 
-### 4. Get Gateway URL
+To remove everything created for this demo (resource-group delete):
 
 ```bash
-az containerapp show \
-  --name gateway \
-  --resource-group iwa-microservices-rg \
-  --query properties.configuration.ingress.fqdn \
-  --output tsv
+az group delete --name MyRg --yes --no-wait
 ```
 
-## Infrastructure as Code (Bicep)
+If you'd like, I can:
 
-For automated deployment, use the Bicep templates in this directory:
+- Add a CLI parameter to `example.ps1` for `$ImageTag` and other values.
+- Show an example GitHub Actions workflow that builds, pushes images to GHCR, and runs this script with secrets.
 
-```bash
-az deployment group create \
-  --resource-group iwa-microservices-rg \
-  --template-file main.bicep \
-  --parameters @parameters.json
-```
-
-## Security Warning
-
-⚠️ **WARNING**: This application contains intentional security vulnerabilities and should NEVER be deployed to a production environment accessible from the public internet without proper security controls and isolation.
-
-## Cleanup
-
-To remove all resources:
-
-```bash
-az group delete --name iwa-microservices-rg --yes --no-wait
-```

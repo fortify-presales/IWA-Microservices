@@ -192,7 +192,7 @@ jobs:
     - name: Deploy to Azure Container Apps
       run: |
         echo "Deployment to Azure Container Apps would happen here"
-        echo "See deploy/azure/README.md for manual deployment instructions"
+    #    pwsh ./deploy/azure/deploy.ps1 -ImageTag ${{ env.IMAGE_TAG }}
 
   fortify-ast-scan:
     name: Fortify AST Scan (per service/app)

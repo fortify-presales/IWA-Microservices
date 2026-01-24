@@ -60,7 +60,7 @@ This application deliberately includes the following security issues:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/kadraman/IWA-Microservices.git
+   git clone https://github.com/fortify-presales/IWA-Microservices.git
    cd IWA-Microservices
    ```
 
@@ -180,12 +180,12 @@ The application includes a GitHub Actions workflow that:
 
 1. Builds all services
 2. Runs tests
-3. Performs security scanning (Trivy)
-4. Builds Docker images
-5. Pushes images to GitHub Container Registry
+3. Builds Docker images
+4. Pushes images to GitHub Container Registry
+5. Runs Security Scan (Fortify)
 6. Deploys to Azure Container Apps (when configured)
 
-See `.github/workflows/ci-cd.yml` for details.
+See `.github/workflows/devsecops.yml` for details.
 
 ## Azure Deployment
 
@@ -254,7 +254,7 @@ This is a demonstration/training application. For questions or contributions:
 
 - Open an issue on GitHub
 - Submit a pull request
-- Contact: kadraman@microfocus.com
+- Contact: info@kadrman.com
 
 ## License
 
