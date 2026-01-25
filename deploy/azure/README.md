@@ -81,8 +81,70 @@ To remove everything created for this demo (resource-group delete):
 az group delete --name MyRg --yes --no-wait
 ```
 
-If you'd like, I can:
+### Swagger / OpenAPI - Environment variables for Azure
 
-- Add a CLI parameter to `example.ps1` for `$ImageTag` and other values.
-- Show an example GitHub Actions workflow that builds, pushes images to GHCR, and runs this script with secrets.
+When deployed to Azure, set these environment variables so the OpenAPI docs and the gateway aggregator point to the public service URLs.
+
+- Per-service OpenAPI server override (set on each service container app):
+  - `OPENAPI_SERVER_URL` — full public URL for the service (example: `https://customers-service.<env>.azurecontainerapps.io`). When set, the service will show this URL in its OpenAPI `servers` list.
+
+- Gateway aggregator (set on the gateway container app):
+  - `SERVICES_CATALOG_URL` — base URL for Catalog service (no `/v3/api-docs` suffix)
+  - `SERVICES_CUSTOMERS_URL`
+  - `SERVICES_ORDERS_URL`
+  - `SERVICES_PAYMENTS_URL`
+  - `SERVICES_PRESCRIPTIONS_URL`
+  - `SERVICES_INVENTORY_URL`
+  - `SERVICES_NOTIFICATIONS_URL`
+
+Example: if your deployed Customers service is available at `https://customers-service.greenwater-xxxx.uksouth.azurecontainerapps.io` then set for that container app:
+
+```
+OPENAPI_SERVER_URL=https://customers-service.greenwater-xxxx.uksouth.azurecontainerapps.io
+```
+
+And set the gateway `SERVICES_CUSTOMERS_URL` to the same base URL (the gateway will append `/v3/api-docs`):
+
+```
+SERVICES_CUSTOMERS_URL=https://customers-service.greenwater-xxxx.uksouth.azurecontainerapps.io
+```
+
+Azure CLI example — create/update a service with `OPENAPI_SERVER_URL` set:
+
+```powershell
+az containerapp create \
+  --name customers-service \
+  --resource-group MyRg \
+  --environment MyEnv \
+  --image ghcr.io/<org>/iwa-microservices-customers:<tag> \
+  --ingress external --target-port 8082 \
+  --env-vars OPENAPI_SERVER_URL="https://customers-service.<env>.azurecontainerapps.io" \
+  --registry-server ghcr.io --registry-username <user> --registry-password <pat>
+```
+
+Azure CLI example — create/update the gateway with service URL env vars (gateway uses these to fetch `/v3/api-docs`):
+
+```powershell
+az containerapp create \
+  --name api-gateway \
+  --resource-group MyRg \
+  --environment MyEnv \
+  --image ghcr.io/<org>/iwa-microservices-gateway:<tag> \
+  --ingress external --target-port 8080 \
+  --env-vars \
+    SERVICES_CATALOG_URL="https://catalog-service.<env>.azurecontainerapps.io" \
+    SERVICES_CUSTOMERS_URL="https://customers-service.<env>.azurecontainerapps.io" \
+    SERVICES_ORDERS_URL="https://orders-service.<env>.azurecontainerapps.io" \
+    SERVICES_PAYMENTS_URL="https://payments-service.<env>.azurecontainerapps.io" \
+    SERVICES_PRESCRIPTIONS_URL="https://prescriptions-service.<env>.azurecontainerapps.io" \
+    SERVICES_INVENTORY_URL="https://inventory-service.<env>.azurecontainerapps.io" \
+    SERVICES_NOTIFICATIONS_URL="https://notifications-service.<env>.azurecontainerapps.io" \
+  --registry-server ghcr.io --registry-username <user> --registry-password <pat>
+```
+
+Notes:
+- Use secure secrets for registry credentials (CI secrets or Azure Key Vault) instead of passing plain text credentials.
+- If your apps are behind a TLS-terminating proxy, ensure `server.forward-headers-strategy=framework` is enabled in the service `application.properties` or configure `OPENAPI_SERVER_URL` explicitly.
+
+After these are set, the gateway aggregated Swagger UI (`/swagger-ui.html` on the gateway FQDN) will load each service's OpenAPI JSON from the public URLs.
 

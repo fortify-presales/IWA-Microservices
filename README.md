@@ -112,6 +112,21 @@ JDBC URL: `jdbc:h2:mem:<servicename>db` (e.g., `jdbc:h2:mem:catalogdb`)
 Username: `sa`
 Password: (empty)
 
+### API Documentation (Swagger / OpenAPI)
+
+Each service exposes OpenAPI JSON at `/v3/api-docs` and a Swagger UI. After starting services, access documentation at:
+
+- API Gateway aggregated Swagger UI: http://localhost:8080/swagger-ui.html (lists all services)
+- Catalog Service Swagger UI: http://localhost:8081/swagger-ui.html
+- Customers Service Swagger UI: http://localhost:8082/swagger-ui.html
+- Orders Service Swagger UI: http://localhost:8083/swagger-ui.html
+- Payments Service Swagger UI: http://localhost:8084/swagger-ui.html
+- Prescriptions Service Swagger UI: http://localhost:8085/swagger-ui.html
+- Inventory Service Swagger UI: http://localhost:8086/swagger-ui.html
+- Notifications Service Swagger UI: http://localhost:8087/swagger-ui.html
+
+If services run on different ports, update the gateway service URLs in `apps/gateway/src/main/resources/application.properties` to point to the running service instances.
+
 ## Testing Vulnerabilities
 
 ### SQL Injection (Catalog Service)

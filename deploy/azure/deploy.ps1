@@ -98,7 +98,10 @@ function CreateOrUpdate-ServiceApp($name, $port, $imageTag) {
 					'--registry-username', $DockerUsername,
 					'--registry-password', $DockerPassword
 				)
-				& az @createArgs | Out-Null
+					# Add OPENAPI_SERVER_URL env var so OpenAPI reports public URL in Azure
+					$openApiUrl = "https://$name.$DefaultDomain"
+					$createArgs += @('--env-vars', "OPENAPI_SERVER_URL=$openApiUrl")
+					& az @createArgs | Out-Null
 		} else {
 				Write-Host "Updating $name to image $image"
 				$updateArgs = @(
@@ -110,7 +113,10 @@ function CreateOrUpdate-ServiceApp($name, $port, $imageTag) {
 					'--registry-username', $DockerUsername,
 					'--registry-password', $DockerPassword
 				)
-				& az @updateArgs | Out-Null
+					# Ensure OPENAPI_SERVER_URL is set/updated on the app
+					$openApiUrl = "https://$name.$DefaultDomain"
+					$updateArgs += @('--env-vars', "OPENAPI_SERVER_URL=$openApiUrl")
+					& az @updateArgs | Out-Null
 		}
 }
 

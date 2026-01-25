@@ -6,6 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -31,6 +35,8 @@ public class PaymentController {
      * VULNERABILITY: Logs sensitive payment data
      */
     @PostMapping("/process")
+    @Operation(summary = "Process payment", description = "Processes a payment request (demo logs sensitive data)")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Processed"), @ApiResponse(responseCode = "400", description = "Bad request")})
     public ResponseEntity<Map<String, Object>> processPayment(@RequestBody Map<String, Object> paymentData) {
         logger.info("Received payment request: {}", paymentData); // Logs full card details!
         
@@ -42,12 +48,16 @@ public class PaymentController {
      * VULNERABILITY: Exposes hardcoded API credentials
      */
     @GetMapping("/config")
+    @Operation(summary = "Get payment gateway config", description = "Returns payment gateway configuration (may expose hardcoded secrets in demo)")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OK")})
     public ResponseEntity<Map<String, String>> getConfig() {
         logger.warn("Payment gateway configuration requested");
         return ResponseEntity.ok(paymentService.getPaymentGatewayConfig());
     }
     
     @PostMapping("/refund")
+    @Operation(summary = "Refund payment", description = "Refunds a payment by ID and amount")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Refunded"), @ApiResponse(responseCode = "400", description = "Bad request")})
     public ResponseEntity<Map<String, Object>> refundPayment(@RequestBody Map<String, Object> refundData) {
         String paymentId = (String) refundData.get("paymentId");
         BigDecimal amount = new BigDecimal(refundData.get("amount").toString());
@@ -62,6 +72,8 @@ public class PaymentController {
      * Intended for testing detection by security scanners.
      */
     @PostMapping(value = "/deserialize-json", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Deserialize JSON", description = "Deserializes JSON with unsafe settings (for demo)")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Deserialized"), @ApiResponse(responseCode = "400", description = "Bad request")})
     public ResponseEntity<?> deserializeJson(@RequestBody String json) {
         try {
             Object obj = paymentService.deserializeJson(json);

@@ -6,6 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +36,11 @@ public class CustomerController {
      * VULNERABILITY: Weak authentication, SQL injection, plain text passwords
      */
     @PostMapping("/login")
+    @Operation(summary = "Authenticate user and return JWT token", description = "Authenticates a user with username and password and returns a JWT token on success")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Authentication successful"),
+        @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    })
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
         String password = credentials.get("password");
@@ -56,6 +65,11 @@ public class CustomerController {
      * VULNERABILITY: Stores password in plain text
      */
     @PostMapping("/register")
+    @Operation(summary = "Register a new customer", description = "Registers a new customer and returns an authentication token")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Registration successful"),
+        @ApiResponse(responseCode = "400", description = "Bad request")
+    })
     public ResponseEntity<Map<String, Object>> register(@RequestBody Customer customer) {
         logger.debug("Registering new customer: {} with password: {}", 
                     customer.getUsername(), customer.getPassword()); // Logs password!
@@ -79,6 +93,11 @@ public class CustomerController {
      * VULNERABILITY: No authorization check - anyone can view any customer
      */
     @GetMapping("/{id}")
+    @Operation(summary = "Get customer by ID", description = "Returns customer details for the given ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Customer found"),
+        @ApiResponse(responseCode = "404", description = "Customer not found")
+    })
     public ResponseEntity<Customer> getCustomerById(@PathVariable Long id) {
         Customer customer = customerService.getCustomerById(id);
         if (customer == null) {
@@ -92,11 +111,15 @@ public class CustomerController {
      * VULNERABILITY: Exposes all customers with plain text passwords
      */
     @GetMapping
+    @Operation(summary = "List all customers", description = "Returns a list of all customers (intentionally insecure in this demo)")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OK")})
     public ResponseEntity<List<Customer>> getAllCustomers() {
         return ResponseEntity.ok(customerService.getAllCustomers());
     }
     
     @PostMapping("/validate")
+    @Operation(summary = "Validate JWT token", description = "Validates a JWT token and returns token status and username if valid")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Validation result")})
     public ResponseEntity<Map<String, Object>> validateToken(@RequestBody Map<String, String> request) {
         String token = request.get("token");
         String username = request.get("username");

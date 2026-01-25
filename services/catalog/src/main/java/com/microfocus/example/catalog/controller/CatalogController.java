@@ -6,6 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import java.util.List;
 
@@ -27,6 +31,8 @@ public class CatalogController {
     }
     
     @GetMapping
+    @Operation(summary = "List products", description = "Returns all products, optionally sorted")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OK")})
     public ResponseEntity<List<Product>> getAllProducts(
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String order) {
@@ -41,6 +47,8 @@ public class CatalogController {
     }
     
     @GetMapping("/{id}")
+    @Operation(summary = "Get product by ID", description = "Returns a single product by its ID")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OK"), @ApiResponse(responseCode = "404", description = "Not Found")})
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
         Product product = catalogService.getProductById(id);
         if (product == null) {
@@ -50,6 +58,8 @@ public class CatalogController {
     }
     
     @GetMapping("/search")
+    @Operation(summary = "Search products", description = "Search products by free-text query (vulnerable to SQL injection in this demo)")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OK")})
     public ResponseEntity<List<Product>> searchProducts(@RequestParam String q) {
         // VULNERABILITY: SQL injection via search parameter
         logger.debug("Searching products with query: {}", q);
@@ -57,6 +67,8 @@ public class CatalogController {
     }
     
     @GetMapping("/category/{category}")
+    @Operation(summary = "List products by category", description = "Returns products within the given category")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OK")})
     public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable String category) {
         // VULNERABILITY: SQL injection via category parameter
         logger.debug("Getting products in category: {}", category);
