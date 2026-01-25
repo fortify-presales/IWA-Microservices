@@ -2,18 +2,22 @@
 
 This directory contains an example deployment script and notes for deploying the IWA-Microservices set to Azure Container Apps.
 
-Important: prefer running the provided PowerShell script `example.ps1` rather than running manual `az containerapp create` commands. The script handles resource-group creation, waiting for the Container Apps environment domain, and create-or-update semantics for Container Apps.
+Important: prefer running the provided PowerShell script `deploy.ps1` rather than running manual `az containerapp create` commands. The script handles resource-group creation, waiting for the Container Apps environment domain, and create-or-update semantics for Container Apps.
 
 Prerequisites
 
-- Azure CLI installed and logged in (`az login`)
+- Azure CLI installed and logged in (`az login`), for example to login via browser
+az account clear
+az config set core.enable_broker_on_windows=false
+az login 
+```
 - `az` extensions for container apps installed (usually `az extension add --name containerapp`)
 - Images pushed to a registry accessible by Azure (example uses GitHub Container Registry `ghcr.io`)
 - A GitHub PAT (or alternative) with `read:packages` if using GHCR for private images
 
 Quick usage
 
-1. Edit `deploy/azure/example.ps1` and set the following variables at the top (or set them in your CI):
+1. Edit `deploy/azure/deploy.ps1` and set the following variables at the top (or set them in your CI):
 
 ```powershell
 $GithubOrganization = "fortify-presales"
@@ -28,7 +32,7 @@ $ImageTag = "main"   # tag to create or update
 2. Run the script from PowerShell (it will create the resource group, environment, and container apps, or update them if they already exist):
 
 ```powershell
-.\example.ps1
+.\deploy.ps1
 ```
 
 Or pass a different tag by editing `$ImageTag` or setting it before running.

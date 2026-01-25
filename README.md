@@ -206,6 +206,27 @@ See `.github/workflows/devsecops.yml` for details.
 
 See `deploy/azure/README.md` for Azure Container Apps deployment instructions.
 
+### Deploy script updates
+
+- **WhatIf preview:** `deploy/azure/deploy.ps1` now supports `-WhatIf` to preview the `az` commands the script would run without making changes.
+- **Logs workspace:** the script accepts `-LogsWorkspaceName` (default: `log-iwa-platform-dev-uk`) and will create a Log Analytics workspace (`--sku PerGB2018`) if missing. It retrieves the workspace `customerId` (GUID) and (when available) the shared key and passes these to the Container Apps environment using `--logs-workspace-id` (customerId) and `--logs-workspace-key`. WhatIf output masks keys.
+- **Behavior changes for updates:** for CLI compatibility the script no longer passes registry credentials or `--env-vars` on `az containerapp update` (it only updates `--image`). Creation commands still include registry creds and env vars such as `OPENAPI_SERVER_URL`.
+- **Progress output & gateway URL:** the script prints colored, numbered step headings and shows the gateway Swagger URL at the end (e.g. `https://<gatewayFqdn>/swagger-ui.html`).
+- **CORS (insecure demo change):** to allow the gateway Swagger UI to fetch each service's `/v3/api-docs` the services in this demo have an intentionally permissive CORS configuration (`CorsConfig` mapping `/**` -> `*`). THIS IS INSECURE — it is done for demo convenience only. To harden, remove or restrict the `CorsConfig` classes under `services/*/src/main/java/.../config/CorsConfig.java`.
+
+Recommended local rebuild & deploy steps after code changes:
+
+```bash
+./gradlew build
+# Build/push images (example; adjust tags/org)
+docker build -t ghcr.io/<org>/iwa-microservices-catalog:main ./services/catalog
+docker push ghcr.io/<org>/iwa-microservices-catalog:main
+# repeat for each service, then run deploy script
+powershell .\deploy\azure\deploy.ps1
+```
+
+Notes: you must be signed into Azure CLI with the correct subscription and have permissions to create resource groups and Log Analytics workspaces.
+
 ## Project Structure
 
 ```
