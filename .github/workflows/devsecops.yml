@@ -190,13 +190,11 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
     
     - name: Deploy to Azure Container Apps
       run: |
         az account show
-        echo "Deployment to Azure Container Apps would happen here"
-    #    pwsh ./deploy/azure/deploy.ps1 -ImageTag ${{ env.IMAGE_TAG }}
+        pwsh ./deploy/azure/deploy.ps1
 
   fortify-ast-scan:
     name: Fortify AST Scan (per service/app)

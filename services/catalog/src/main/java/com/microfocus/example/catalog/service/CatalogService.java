@@ -37,4 +37,17 @@ public class CatalogService {
     public List<Product> getAllProductsSorted(String sortBy, String order) {
         return productRepository.findAllSorted(sortBy, order);
     }
+
+    // New CRUD operations
+    public Product createProduct(Product product) {
+        return productRepository.save(product);
+    }
+
+    public Product updateProduct(Long id, Product product) {
+        return productRepository.update(id, product);
+    }
+
+    public boolean deleteProduct(Long id) {
+        return productRepository.delete(id);
+    }
 }

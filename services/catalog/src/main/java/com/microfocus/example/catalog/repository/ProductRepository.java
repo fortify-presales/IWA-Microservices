@@ -3,9 +3,12 @@ package com.microfocus.example.catalog.repository;
 import com.microfocus.example.contracts.model.Product;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -98,7 +101,52 @@ public class ProductRepository {
         String sql = "SELECT * FROM products ORDER BY " + sortField + " " + sortOrder;
         return jdbcTemplate.query(sql, new ProductRowMapper());
     }
-    
+
+    // --------- New CRUD methods (intentionally simple for demo) ---------
+    public Product save(Product product) {
+        String sql = "INSERT INTO products (name, description, category, price, stock_quantity, image_url, requires_prescription, manufacturer, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql, new String[] {"id"});
+            ps.setString(1, product.getName());
+            ps.setString(2, product.getDescription());
+            ps.setString(3, product.getCategory());
+            ps.setBigDecimal(4, product.getPrice() == null ? BigDecimal.ZERO : product.getPrice());
+            ps.setInt(5, product.getStockQuantity() == null ? 0 : product.getStockQuantity());
+            ps.setString(6, product.getImageUrl());
+            ps.setBoolean(7, product.getRequiresPrescription() == null ? false : product.getRequiresPrescription());
+            ps.setString(8, product.getManufacturer());
+            return ps;
+        }, keyHolder);
+
+        Number key = keyHolder.getKey();
+        if (key != null) {
+            return findById(key.longValue());
+        }
+        return null;
+    }
+
+    public Product update(Long id, Product product) {
+        String sql = "UPDATE products SET name = ?, description = ?, category = ?, price = ?, stock_quantity = ?, image_url = ?, requires_prescription = ?, manufacturer = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+        jdbcTemplate.update(sql,
+                product.getName(),
+                product.getDescription(),
+                product.getCategory(),
+                product.getPrice() == null ? BigDecimal.ZERO : product.getPrice(),
+                product.getStockQuantity() == null ? 0 : product.getStockQuantity(),
+                product.getImageUrl(),
+                product.getRequiresPrescription() == null ? false : product.getRequiresPrescription(),
+                product.getManufacturer(),
+                id);
+        return findById(id);
+    }
+
+    public boolean delete(Long id) {
+        String sql = "DELETE FROM products WHERE id = ?";
+        int rows = jdbcTemplate.update(sql, id);
+        return rows > 0;
+    }
+
     private static class ProductRowMapper implements RowMapper<Product> {
         @Override
         public Product mapRow(ResultSet rs, int rowNum) throws SQLException {
