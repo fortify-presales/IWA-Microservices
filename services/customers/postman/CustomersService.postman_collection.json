@@ -1,0 +1,199 @@
+{
+  "info": {
+    "name": "Customers Service - Demo Collection",
+    "_postman_id": "customers-service-demo-collection",
+    "description": "Collection of requests to exercise the Customers service (login, register, list, get, update, validate). Uses environment variables: baseUrl, token, userId, username, password.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8082/api/customers",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "john.doe",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "password123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login (get token)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": [
+            "{{baseUrl}}/login"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Save token and customerId to environment variables",
+              "if (pm.response.code === 200) {",
+              "  var json = pm.response.json();",
+              "  if (json.token) {",
+              "    // store full header value including 'Bearer ' prefix so it can be used directly in Authorization header",
+              "    pm.environment.set('token', 'Bearer ' + json.token);",
+              "    // also store the raw JWT (without the 'Bearer ' prefix) for requests that expect the token value in the body",
+              "    pm.environment.set('rawToken', json.token);",
+              "  }",
+              "  if (json.customerId) {",
+              "    pm.environment.set('userId', json.customerId.toString());",
+              "  }",
+              "  if (json.username) {",
+              "    pm.environment.set('username', json.username);",
+              "  }",
+              "}",
+              "pm.test('Login returns 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Register (optional)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"new.user\",\n  \"password\": \"P@ssw0rd!\",\n  \"email\": \"new.user@example.com\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{baseUrl}}/register", "host": [ "{{baseUrl}}/register" ] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": [ "pm.test('Register returns 200 or 400 (if exists)', function () { pm.expect([200,400]).to.include(pm.response.code); });" ] }
+        }
+      ]
+    },
+    {
+      "name": "03 - List all customers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}", "host": [ "{{baseUrl}}" ] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "pm.test('List returned', function () { pm.response.to.have.status(200); });",
+              "// If john.doe exists, capture its id for convenience",
+              "if (Array.isArray(json)) {",
+              "  for (var i = 0; i < json.length; i++) {",
+              "    if (json[i].username === pm.environment.get('username')) {",
+              "      pm.environment.set('userId', json[i].id + '');",
+              "      break;",
+              "    }",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Get customer by id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/{{userId}}", "host": [ "{{baseUrl}}/{{userId}}" ] }
+      },
+      "event": [ { "listen": "test", "script": { "exec": [ "pm.test('Get by id returns 200 or 404', function () { pm.expect([200,404]).to.include(pm.response.code); });" ] } } ]
+    },
+    {
+      "name": "05 - Update customer (auth required)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "{{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"email\": \"{{username}}@example.com\",\n  \"firstName\": \"Updated\",\n  \"lastName\": \"User\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{baseUrl}}/{{userId}}", "host": [ "{{baseUrl}}/{{userId}}" ] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Update returns 200 or 401/403', function () { pm.expect([200,401,403,404,400]).to.include(pm.response.code); });",
+              "if (pm.response.code === 200) {",
+              "  var j = pm.response.json();",
+              "  if (j && j.id) { pm.environment.set('userId', j.id + ''); }",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Validate token",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{rawToken}}\",\n  \"username\": \"{{username}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{baseUrl}}/validate", "host": [ "{{baseUrl}}/validate" ] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Validate returns 200', function () { pm.response.to.have.status(200); });",
+              "var j = pm.response.json();",
+              "if (j && j.valid) { pm.environment.set('validated', 'true'); }"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

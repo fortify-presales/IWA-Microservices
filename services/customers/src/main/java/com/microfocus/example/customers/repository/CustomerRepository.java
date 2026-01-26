@@ -125,6 +125,31 @@ public class CustomerRepository {
         jdbcTemplate.update(sql, LocalDateTime.now(), customerId);
     }
     
+    /**
+     * Update customer fields by id. Uses parameterized query to avoid SQL injection.
+     * Returns the updated customer or null if not found.
+     */
+    public Customer updateCustomer(Customer customer) {
+        String sql = "UPDATE customers SET username = ?, password = ?, email = ?, first_name = ?, last_name = ?, " +
+                     "phone = ?, address = ?, city = ?, state = ?, zip_code = ? WHERE id = ?";
+
+        int rows = jdbcTemplate.update(sql,
+            customer.getUsername(),
+            customer.getPassword(),
+            customer.getEmail(),
+            customer.getFirstName(),
+            customer.getLastName(),
+            customer.getPhone(),
+            customer.getAddress(),
+            customer.getCity(),
+            customer.getState(),
+            customer.getZipCode(),
+            customer.getId()
+        );
+
+        return rows > 0 ? findById(customer.getId()) : null;
+    }
+
     private static class CustomerRowMapper implements RowMapper<Customer> {
         @Override
         public Customer mapRow(ResultSet rs, int rowNum) throws SQLException {

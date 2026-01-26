@@ -54,4 +54,8 @@ public class CustomerService {
     public String extractUsernameFromToken(String token) {
         return jwtService.extractUsername(token);
     }
+
+    public Customer updateCustomer(Customer customer) {
+        return customerRepository.updateCustomer(customer);
+    }
 }

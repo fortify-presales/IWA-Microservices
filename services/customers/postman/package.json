@@ -1,0 +1,13 @@
+{
+  "name": "customers-postman",
+  "version": "1.0.0",
+  "description": "Postman collection runner for Customers service (uses Newman)",
+  "private": true,
+  "scripts": {
+    "run-collection": "npx newman run CustomersService.postman_collection.json -e CustomersService.postman_environment.json --delay-request 50 --reporters cli"
+  },
+  "devDependencies": {
+    "newman": "^5.3.0"
+  }
+}
+

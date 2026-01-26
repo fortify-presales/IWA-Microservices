@@ -202,6 +202,163 @@ The application includes a GitHub Actions workflow that:
 
 See `.github/workflows/devsecops.yml` for details.
 
+## Using the DevSecOps GitHub Actions workflow
+
+The repository includes a comprehensive GitHub Actions pipeline at `.github/workflows/devsecops.yml` that builds, tests, containerizes, scans (Fortify/Trivy optional) and can deploy the services to Azure Container Apps.
+
+This section explains how to trigger and configure that workflow and how to provide the Azure credentials the workflow needs.
+
+### How the workflow is triggered
+- Push events on branches: `main`, `develop`, `feature/**`, `hotfix/**` trigger builds.
+- Pull requests targeting `main` and `develop` trigger PR validations.
+- You can also trigger the workflow manually from the Actions tab using "Run workflow" (workflow_dispatch).
+
+> Tip: For local CI debugging you can create a temporary branch and push to it, or open a PR against `develop` to exercise the pipeline without affecting `main`.
+
+### Required repository secrets and variables
+The workflow reads several repository-level variables and secrets. At minimum, to enable deployment to Azure you must create these GitHub repository secrets:
+
+- `AZURE_TENANT_ID` – Azure Active Directory Tenant ID
+- `AZURE_CLIENT_ID` – Azure AD Application (Service Principal) Client ID
+- `AZURE_CLIENT_SECRET` – Client secret for the Service Principal
+- `AZURE_SUBSCRIPTION_ID` – Azure Subscription ID
+
+Additionally, the pipeline references Fortify (FoD) variables/secrets if you enable the Fortify scan steps (see the top of `.github/workflows/devsecops.yml`). Those are optional and documented in the workflow file.
+
+### Create an Azure Service Principal (recommended steps)
+You can create a service principal using the Azure CLI. The example below creates an SP scoped to a subscription and outputs an SDK-auth JSON (useful for automation). Adjust the role and scope to follow least privilege.
+
+1. Login to Azure and set the target subscription (interactive):
+
+```bash
+az login
+# list subscriptions and copy the ID you want to use
+az account list --output table
+# set the subscription you want the SP to target
+az account set --subscription "<your-subscription-id>"
+```
+
+2. Create a service principal scoped to the subscription (example uses Contributor role). For a production setup choose a narrower role (e.g., 'Azure Container Apps Contributor'):
+
+```bash
+# Replace <subscription-id> and <unique-name>
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+az ad sp create-for-rbac --name "gha-iwa-microservices-sp" --role Contributor --scopes /subscriptions/${SUBSCRIPTION_ID} --sdk-auth > sp.json
+```
+
+This writes an `sp.json` file containing JSON like:
+
+```text
+{
+  "clientId": "<clientId>",
+  "clientSecret": "<clientSecret>",
+  "subscriptionId": "<subscriptionId>",
+  "tenantId": "<tenantId>",
+  "activeDirectoryEndpointUrl": "<activeDirectoryEndpointUrl>",
+  "resourceManagerEndpointUrl": "<resourceManagerEndpointUrl>"
+}
+```
+
+3. Extract the values you need (or open `sp.json` and copy):
+
+- AZURE_CLIENT_ID = clientId
+- AZURE_CLIENT_SECRET = clientSecret
+- AZURE_TENANT_ID = tenantId
+- AZURE_SUBSCRIPTION_ID = subscriptionId
+
+> Security note: Do not commit `sp.json` to source control; treat it as a secret.
+
+### Add the Azure secrets to GitHub
+You can add secrets via the GitHub web UI or the `gh` CLI.
+
+Web UI (repository-level):
+1. Go to your repository on GitHub.
+2. Settings → Secrets and variables → Actions → New repository secret.
+3. Add each secret name and value (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID).
+
+Using GitHub CLI (`gh`):
+
+```bash
+# Example using values from sp.json (Linux/macOS/WSL / PowerShell adapt as needed)
+cat sp.json | jq -r '.clientId' | xargs -I{} gh secret set AZURE_CLIENT_ID --body "{}"
+cat sp.json | jq -r '.clientSecret' | xargs -I{} gh secret set AZURE_CLIENT_SECRET --body "{}"
+cat sp.json | jq -r '.tenantId' | xargs -I{} gh secret set AZURE_TENANT_ID --body "{}"
+cat sp.json | jq -r '.subscriptionId' | xargs -I{} gh secret set AZURE_SUBSCRIPTION_ID --body "{}"
+```
+
+(If you don't have `jq`, you can open `sp.json` and copy/paste values into the GitHub web UI.)
+
+### Minimal permissions guidance
+- The example creates a Service Principal with `Contributor` rights for convenience. For least privilege, scope it to roles that allow deployment of Container Apps only (for example `Azure Container Apps Contributor` or a custom RBAC role) and scope to the resource group rather than the whole subscription.
+
+### How the workflow uses these secrets
+- The pipeline step `Azure Login` (uses `azure/login@v1`) reads `tenant-id`, `client-id` and `subscription-id` from the repository secrets and uses them to authenticate the pipeline for subsequent `az` commands.
+- The `deploy-to-azure` job runs only on `main` branch pushes by default (see `.github/workflows/devsecops.yml`).
+
+### Triggering a deploy manually
+- Open the Actions tab → choose the `DevSecOps Pipeline` workflow → click `Run workflow` (provide branch and any inputs) to dispatch a run manually.
+- Alternatively, push a commit to `main` (or merge a PR) to trigger the full pipeline which includes the `deploy-to-azure` job (when on `main`).
+
+### Troubleshooting
+- If `azure/login` fails, verify the SP values, that the client secret has not expired, and that the SP has appropriate RBAC rights for the subscription or resource group.
+- For permission errors during deploy, check the assigned role and scope for the SP and consider granting the necessary role at the resource group level rather than subscription-wide.
+
+### Azure authentication options for `azure/login`
+
+Short answer: `AZURE_CLIENT_SECRET` is only required when you authenticate using a Service Principal + client secret; it is not required when using GitHub's OIDC (workload identity federation) flow.
+
+Details:
+
+- Option 1 — OIDC (recommended)
+  - Use GitHub Actions' OIDC issuance to exchange a short-lived token for an Azure access token. No long-lived client secret stored in GitHub.
+  - Requirements: your workflow must include `permissions: id-token: write` (the repository already sets this). Create an Azure AD App Registration and add a Federated Identity Credential that trusts GitHub for your repo/branch.
+  - Example `azure/login` step (no client secret required):
+
+```yaml
+- name: Azure Login (OIDC)
+  uses: azure/login@v1
+  with:
+    tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+    client-id: ${{ secrets.AZURE_CLIENT_ID }}
+    subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+```
+
+  - Benefits: no long-lived secret in GitHub; simpler rotation and better security posture.
+
+- Option 2 — Service Principal + client secret (classic)
+  - If you prefer or must use a client secret, create a Service Principal and store `AZURE_CLIENT_SECRET` as a GitHub secret.
+  - Example `azure/login` step using a client secret:
+
+```yaml
+- name: Azure Login (client secret)
+  uses: azure/login@v1
+  with:
+    tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+    client-id: ${{ secrets.AZURE_CLIENT_ID }}
+    client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+    subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+```
+
+  - Create the SP and obtain credentials:
+
+```bash
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+az ad sp create-for-rbac --name "gha-iwa-microservices-sp" --role Contributor --scopes /subscriptions/${SUBSCRIPTION_ID} --sdk-auth > sp.json
+```
+
+  - `sp.json` contains `clientId`, `clientSecret`, `tenantId`, and `subscriptionId`.
+
+  - Add `AZURE_CLIENT_SECRET` to GitHub:
+    - Web UI: Repository → Settings → Secrets and variables → Actions → New repository secret → name `AZURE_CLIENT_SECRET` and paste the value.
+    - gh CLI example:
+
+```bash
+gh secret set AZURE_CLIENT_SECRET --body "$(jq -r '.clientSecret' sp.json)"
+```
+
+Recommendations
+- Prefer OIDC / federated credentials when possible. If you must use client secrets, rotate them regularly and scope the SP's RBAC to least privilege (resource group and narrow role such as `Azure Container Apps Contributor`).
+
 ## Azure Deployment
 
 See `deploy/azure/README.md` for Azure Container Apps deployment instructions.
@@ -299,3 +456,31 @@ See LICENSE file for details.
 ## Disclaimer
 
 ⚠️ **SECURITY WARNING**: This application is intentionally vulnerable and insecure. It is designed for educational and testing purposes only. Never deploy this application in a production environment or expose it to untrusted networks. The authors are not responsible for any misuse or damage caused by this application.
+
+## Postman collection (quick demo)
+
+A ready-made Postman collection is included for the Customers service to exercise login, register, update and token validation flows.
+
+Files (relative to repo root):
+- `services/customers/postman/CustomersService.postman_collection.json` (the collection)
+- `services/customers/postman/CustomersService.postman_environment.json` (postman environment with `username`/`password` defaults)
+- `services/customers/postman/package.json` (helper npm script to run Newman)
+
+Run the collection (quick, no install):
+
+```powershell
+cd services\customers\postman
+npx newman run CustomersService.postman_collection.json -e CustomersService.postman_environment.json --delay-request 50 --reporters cli
+```
+
+Or install and run via npm script:
+
+```powershell
+cd services\customers\postman
+npm install
+npm run run-collection
+```
+
+Notes
+- The environment defaults to `username = john.doe` and `password = password123` (seeded in the demo DB). If you prefer another user, edit the environment file or update variables in the Postman GUI.
+- The collection stores `token` (full `Bearer <jwt>`) and `rawToken` (compact JWT) after login; the validate request uses `rawToken` to avoid base64 decoding errors.

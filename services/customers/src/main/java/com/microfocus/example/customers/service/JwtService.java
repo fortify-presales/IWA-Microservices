@@ -4,11 +4,14 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.security.MessageDigest;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +23,8 @@ import java.util.Map;
 @Service
 public class JwtService {
     
+    private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
+
     @Value("${jwt.secret}")
     private String secret; // Hardcoded weak secret in config
     
@@ -30,8 +35,29 @@ public class JwtService {
      * VULNERABILITY: Uses weak secret key
      */
     private Key getSigningKey() {
-        // Using weak secret directly from config
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        if (secret == null || secret.isEmpty()) {
+            logger.warn("JWT secret is not configured; generating a temporary secure key.");
+            return Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        }
+
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        // Keys.hmacShaKeyFor requires at least 256 bits (32 bytes) for HS256.
+        if (keyBytes.length < 32) {
+            // Derive a 256-bit key deterministically from the provided secret using SHA-256.
+            // This keeps the demo's short/hardcoded secret usable while satisfying the JJWT requirement.
+            // Note: this is a convenience/compatibility approach for demos — using a short secret
+            // remains insecure in practice. Prefer a randomly generated >=256-bit secret stored securely.
+            try {
+                MessageDigest sha = MessageDigest.getInstance("SHA-256");
+                keyBytes = sha.digest(keyBytes);
+                logger.warn("JWT secret was too short; derived a 256-bit key from the configured secret.");
+            } catch (Exception e) {
+                logger.error("Failed to derive SHA-256 from JWT secret, falling back to a generated key.", e);
+                return Keys.secretKeyFor(SignatureAlgorithm.HS256);
+            }
+        }
+
+        return Keys.hmacShaKeyFor(keyBytes);
     }
     
     public String generateToken(String username, Long customerId) {
