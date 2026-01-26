@@ -20,7 +20,7 @@ jobs:
   deploy-to-azure:
     name: Deploy to Azure Container Apps
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
     environment: production
 
     steps:
