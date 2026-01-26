@@ -16,8 +16,22 @@ name: DevSecOps Pipeline
 on:
   push:
     branches: [ main, develop, feature/**, hotfix/** ]
+    paths-ignore:
+      - '.github/**'
+      - 'apps/**'
+      - 'plugins/**'
+      - 'LICENSE'
+      - 'README.md'
+      - 'VULNERABILITIES.md'
   pull_request:
     branches: [ main, develop ]
+    paths-ignore:
+      - '.github/**'
+      - 'apps/**'
+      - 'plugins/**'
+      - 'LICENSE'
+      - 'README.md'
+      - 'VULNERABILITIES.md'
   workflow_dispatch:
 
 permissions:
@@ -67,23 +81,23 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Set up JDK ${{ env.JAVA_VERSION }}
       uses: actions/setup-java@v4
       with:
         java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
         cache: 'gradle'
-    
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-    
+
     - name: Build with Gradle
       run: ./gradlew build -x test
-    
+
     - name: Run tests
       run: ./gradlew test || true
-    
+
     - name: Archive build artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -92,16 +106,16 @@ jobs:
           apps/*/build/libs/*.jar
           services/*/build/libs/*.jar
         retention-days: 5
-  
+
   #trivy-security-scan:
   #  name: Security Scanning
   #  runs-on: ubuntu-latest
   #  needs: build
-  #  
+  #
   #  steps:
   #  - name: Checkout code
   #    uses: actions/checkout@v4
-  #  
+  #
   #  - name: Run Trivy vulnerability scanner
   #    uses: aquasecurity/trivy-action@master
   #    with:
@@ -109,19 +123,19 @@ jobs:
   #      scan-ref: '.'
   #      format: 'sarif'
   #      output: 'trivy-results.sarif'
-  #  
+  #
   #  - name: Upload Trivy results to GitHub Security tab
   #    uses: github/codeql-action/upload-sarif@v3
   #    if: always()
   #    with:
   #      sarif_file: 'trivy-results.sarif'
-  
+
   build-docker-images:
     name: Build Docker Images
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'push'
-    
+
     strategy:
       matrix:
         service:
@@ -133,18 +147,18 @@ jobs:
           - prescriptions
           - inventory
           - notifications
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Log in to Container Registry
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    
+
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
@@ -154,7 +168,7 @@ jobs:
           type=ref,event=branch
           type=sha,prefix={{branch}}-
           type=semver,pattern={{version}}
-    
+
     - name: Determine Dockerfile path
       id: dockerfile
       run: |
@@ -163,7 +177,7 @@ jobs:
         else
           echo "path=services/${{ matrix.service }}/Dockerfile" >> $GITHUB_OUTPUT
         fi
-    
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -179,29 +193,32 @@ jobs:
     needs: build-docker-images
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Azure Login
       uses: azure/login@v1
       with:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    
+
     - name: Deploy to Azure Container Apps
       run: |
         az account show
         pwsh ./deploy/azure/deploy.ps1
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
   fortify-ast-scan:
     name: Fortify AST Scan (per service/app)
     runs-on: ubuntu-latest
     needs: [ build, env-prepare ]
     if: github.event_name != 'pull_request' || github.actor == 'dependabot[bot]'
-    env: 
+    env:
       FOD_APPLICATION: ${{ needs.env-prepare.outputs.FOD_APPLICATION }}
       FOD_RELEASE: ${{ needs.env-prepare.outputs.FOD_RELEASE }}
       FOD_PARENT_RELEASE: ${{ needs.env-prepare.outputs.FOD_PARENT_RELEASE }}
