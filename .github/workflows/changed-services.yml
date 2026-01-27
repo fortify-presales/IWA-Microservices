@@ -105,28 +105,20 @@ jobs:
         cat matrix.json >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
 
-  dispatch:
-    name: Dispatch CI per changed service
+  preview:
+    name: Preview matrix (debug)
     needs: detect
     runs-on: ubuntu-latest
     if: needs.detect.outputs.matrix != ''
-    strategy:
-      matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
     steps:
-    - name: "Debug: print raw matrix JSON"
+    - name: Print raw matrix JSON
       run: |
-        echo "-------------------------"
-        echo "Raw matrix JSON from detect job:"
-        echo "$MATRIX"
-        echo "-------------------------"
-      env:
-        MATRIX: ${{ needs.detect.outputs.matrix }}
+        echo "----- Raw matrix JSON -----"
+        echo "${{ needs.detect.outputs.matrix }}"
+        echo "---------------------------"
 
-    - name: "Debug: list matrix entries"
+    - name: List matrix entries
       uses: actions/github-script@v7
-      if: needs.detect.outputs.matrix != ''
-      env:
-        MATRIX: ${{ needs.detect.outputs.matrix }}
       with:
         script: |
           const m = JSON.parse(process.env.MATRIX || '{}')
@@ -137,11 +129,113 @@ jobs:
           } else {
             console.log('No include array found in matrix')
           }
+      env:
+        MATRIX: ${{ needs.detect.outputs.matrix }}
 
-    - name: Call service CI/CD workflow
-      uses: ./.github/workflows/service-ci-cd.yml
+  dispatch:
+    name: Dispatch CI per changed service
+    needs: detect
+    runs-on: ubuntu-latest
+    if: needs.detect.outputs.matrix != ''
+    strategy:
+      matrix: ${{ fromJson(needs.detect.outputs.matrix).include }}
+
+    env:
+      JAVA_VERSION: '17'
+      REGISTRY: ghcr.io
+      IMAGE_PREFIX: ${{ github.repository_owner }}/iwa-microservices
+      AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+      AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+      AZURE_CONTAINER_ENVIRONMENT: ${{ secrets.AZURE_CONTAINER_ENVIRONMENT }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
       with:
-        service: ${{ matrix.service }}
-        path: ${{ matrix.path }}
-        deploy: ${{ github.ref == 'refs/heads/main' }}
-        fortify: false
+        fetch-depth: 0
+
+    - name: Cache Gradle per-service
+      uses: actions/cache@v4
+      id: gradle-cache
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('{0}/**/build.gradle', matrix.path)) }}
+        restore-keys: |
+          gradle-${{ runner.os }}-${{ matrix.service }}-
+          gradle-${{ runner.os }}-
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: ${{ env.JAVA_VERSION }}
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: |
+        cd "${{ matrix.path }}"
+        ./gradlew build -x test
+
+    - name: Run tests
+      run: |
+        cd "${{ matrix.path }}"
+        ./gradlew test || true
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.service }}-build
+        path: ${{ matrix.path }}/build/libs/*.jar
+        retention-days: 3
+
+    - name: Check for Dockerfile
+      id: has-docker
+      run: |
+        if [ -f "${{ matrix.path }}/Dockerfile" ]; then
+          echo "has_docker=true" >> $GITHUB_OUTPUT
+        else
+          echo "has_docker=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Log in to Container Registry
+      if: steps.has-docker.outputs.has_docker == 'true'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract Docker metadata
+      if: steps.has-docker.outputs.has_docker == 'true'
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+
+    - name: Build & push Docker image
+      if: steps.has-docker.outputs.has_docker == 'true'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ${{ matrix.path }}/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Deploy (only on main and if requested)
+      if: ${{ github.ref == 'refs/heads/main' }}
+      run: |
+        echo "Deploying ${{ matrix.service }} to Azure Container Apps"
+        pwsh -NoProfile -NonInteractive -File ./deploy/azure/deploy.ps1 \
+          -ServiceParam "${{ matrix.service }}" \
+          -DockerUsernameParam "${{ secrets.DOCKER_USERNAME }}" \
+          -DockerPasswordParam "${{ secrets.DOCKER_PASSWORD }}" \
+          -ImageTagParam "${{ github.ref_name }}"
