@@ -75,10 +75,8 @@ jobs:
 
         if [ ${#services[@]} -eq 0 ]; then
           echo "No services changed. Exiting." 
-          echo '{"include":[] }' > matrix.json
-          # write matrix JSON as a multiline step output (clean JSON only)
+          # No services changed — emit an empty matrix output (empty string) so dispatch job is skipped
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
-          cat matrix.json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           exit 0
         fi
@@ -115,6 +113,31 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
     steps:
+    - name: "Debug: print raw matrix JSON"
+      run: |
+        echo "-------------------------"
+        echo "Raw matrix JSON from detect job:"
+        echo "$MATRIX"
+        echo "-------------------------"
+      env:
+        MATRIX: ${{ needs.detect.outputs.matrix }}
+
+    - name: "Debug: list matrix entries"
+      uses: actions/github-script@v7
+      if: needs.detect.outputs.matrix != ''
+      env:
+        MATRIX: ${{ needs.detect.outputs.matrix }}
+      with:
+        script: |
+          const m = JSON.parse(process.env.MATRIX || '{}')
+          console.log('Parsed matrix:')
+          console.log(JSON.stringify(m, null, 2))
+          if (Array.isArray(m.include)) {
+            m.include.forEach(it => console.log(`service=${it.service}, path=${it.path}`))
+          } else {
+            console.log('No include array found in matrix')
+          }
+
     - name: Call service CI/CD workflow
       uses: ./.github/workflows/service-ci-cd.yml
       with:
