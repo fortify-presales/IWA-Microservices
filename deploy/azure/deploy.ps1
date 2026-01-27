@@ -8,7 +8,8 @@ param(
 	[string]$AzureResourceGroupParam,
 	[string]$AzureContainerEnvironmentParam,
 	[string]$ImageTagParam,
-	[string]$LogsWorkspaceNameParam
+	[string]$LogsWorkspaceNameParam,
+	[string]$ServiceParam
 )
 
 # Expose the script's PSCmdlet to functions so they can call ShouldProcess
@@ -60,6 +61,16 @@ if ($ImageTagParam) {
 	if ($env:GITHUB_REF -match 'refs/(heads|tags)/(.+)$') { $ImageTag = $matches[2] } else { $ImageTag = "main" }
 } else {
 	$ImageTag = "main"
+}
+
+# Normalize optional Service parameter: accept 'orders' or 'orders-service' or 'gateway'
+$TargetService = $null
+if ($ServiceParam) {
+	$raw = $ServiceParam.ToString().ToLower().Trim()
+	if ($raw.EndsWith('-service')) { $raw = $raw.Substring(0, $raw.Length - 8) }
+	# Accept 'gateway' as-is
+	$TargetService = $raw
+	Write-Host "Service parameter specified; targeting only: $TargetService"
 }
 
 Write-Host "[1/6] Ensure resource group exists" -ForegroundColor Yellow
@@ -180,14 +191,38 @@ function CreateOrUpdate-ServiceApp($name, $port, $imageTag) {
 }
 
 Write-Host "[5/6] Deploying service apps" -ForegroundColor Yellow
-CreateOrUpdate-ServiceApp "catalog-service" 8081 $ImageTag
-CreateOrUpdate-ServiceApp "customers-service" 8082 $ImageTag
-CreateOrUpdate-ServiceApp "orders-service" 8083 $ImageTag
-CreateOrUpdate-ServiceApp "payments-service" 8084 $ImageTag
-CreateOrUpdate-ServiceApp "prescriptions-service" 8085 $ImageTag
-CreateOrUpdate-ServiceApp "inventory-service" 8086 $ImageTag
-CreateOrUpdate-ServiceApp "notifications-service" 8087 $ImageTag
-Write-Host "Service apps deployment complete" -ForegroundColor Green
+if ([string]::IsNullOrEmpty($TargetService)) {
+	# Deploy all services (existing behavior)
+	CreateOrUpdate-ServiceApp "catalog-service" 8081 $ImageTag
+	CreateOrUpdate-ServiceApp "customers-service" 8082 $ImageTag
+	CreateOrUpdate-ServiceApp "orders-service" 8083 $ImageTag
+	CreateOrUpdate-ServiceApp "payments-service" 8084 $ImageTag
+	CreateOrUpdate-ServiceApp "prescriptions-service" 8085 $ImageTag
+	CreateOrUpdate-ServiceApp "inventory-service" 8086 $ImageTag
+	CreateOrUpdate-ServiceApp "notifications-service" 8087 $ImageTag
+	Write-Host "Service apps deployment complete" -ForegroundColor Green
+} else {
+	# Deploy only the requested service
+	if ($TargetService -eq 'gateway') {
+		Write-Host "Deploying only gateway (requested)" -ForegroundColor Yellow
+		CreateOrUpdate-Gateway $ImageTag
+	} else {
+		switch ($TargetService) {
+			'catalog' { CreateOrUpdate-ServiceApp "catalog-service" 8081 $ImageTag }
+			'customers' { CreateOrUpdate-ServiceApp "customers-service" 8082 $ImageTag }
+			'orders' { CreateOrUpdate-ServiceApp "orders-service" 8083 $ImageTag }
+			'payments' { CreateOrUpdate-ServiceApp "payments-service" 8084 $ImageTag }
+			'prescriptions' { CreateOrUpdate-ServiceApp "prescriptions-service" 8085 $ImageTag }
+			'inventory' { CreateOrUpdate-ServiceApp "inventory-service" 8086 $ImageTag }
+			'notifications' { CreateOrUpdate-ServiceApp "notifications-service" 8087 $ImageTag }
+			Default {
+				Write-Host "Unknown service specified: $ServiceParam" -ForegroundColor Yellow
+				exit 1
+			}
+		}
+		Write-Host "Requested service deployment complete" -ForegroundColor Green
+	}
+}
 
 # Create gateway and pass environment variables pointing at the services
 function CreateOrUpdate-Gateway($imageTag) {
@@ -244,7 +279,12 @@ function CreateOrUpdate-Gateway($imageTag) {
 }
 
 Write-Host "[6/6] Deploying gateway" -ForegroundColor Yellow
-CreateOrUpdate-Gateway $ImageTag
+# Only deploy gateway if no specific service requested, or if gateway was explicitly requested
+if ([string]::IsNullOrEmpty($TargetService) -or $TargetService -eq 'gateway') {
+	CreateOrUpdate-Gateway $ImageTag
+} else {
+	Write-Host "Skipping gateway deployment (targeted service: $TargetService)" -ForegroundColor Yellow
+}
 
 # Show gateway endpoint URL
 $gatewayFqdn = az containerapp show --name gateway --resource-group $AzureResourceGroup --query properties.configuration.ingress.fqdn --output tsv 2>$null

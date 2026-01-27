@@ -1,0 +1,118 @@
+name: Changed Services Detector
+
+on:
+  push:
+    branches: [ main, develop, feature/**, hotfix/** ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SERVICES_DIRS: "apps gateway services"
+
+jobs:
+  detect:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Determine changed files
+      id: changes
+      run: |
+        echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME}"
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          echo "PR detected"
+          git fetch origin +refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
+          BASE=${{ github.event.pull_request.base.sha }}
+          HEAD=${{ github.event.pull_request.head.sha }}
+        else
+          BASE=${{ github.event.before }}
+          HEAD=${{ github.sha }}
+        fi
+        echo "Base=$BASE"; echo "Head=$HEAD"
+        git diff --name-only $BASE $HEAD > changed_files.txt || true
+        echo "Changed files:"; cat changed_files.txt
+        echo "files<<EOF" >> $GITHUB_OUTPUT
+        cat changed_files.txt
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Build matrix of changed services
+      id: set-matrix
+      run: |
+        files=$(cat changed_files.txt || true)
+        echo "Parsing changed files..."
+        services=()
+
+        # map changes under apps/ and services/ and apps/gateway
+        while IFS= read -r f; do
+          if [[ "$f" == apps/gateway/* ]] || [[ "$f" == apps/gateway"" ]]; then
+            svc="gateway"
+          elif [[ "$f" == apps/* ]]; then
+            # apps/<name>/...
+            svc=$(echo "$f" | cut -d'/' -f2)
+          elif [[ "$f" == services/* ]]; then
+            svc=$(echo "$f" | cut -d'/' -f2)
+          else
+            svc=""
+          fi
+          if [[ -n "$svc" ]]; then
+            # dedupe
+            if [[ ! " ${services[@]} " =~ " ${svc} " ]]; then
+              services+=("$svc")
+            fi
+          fi
+        done <<< "$files"
+
+        if [ ${#services[@]} -eq 0 ]; then
+          echo "No services changed. Exiting." 
+          echo "matrix={\"include\":[] }" > matrix.json
+          echo "matrix=$(cat matrix.json)" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # build JSON matrix
+        echo -n '{"include":[' > matrix.json
+        first=true
+        for s in "${services[@]}"; do
+          if [ "$first" = true ]; then
+            first=false
+          else
+            echo -n ',' >> matrix.json
+          fi
+          # decide path
+          if [ "$s" = "gateway" ]; then
+            path="apps/gateway"
+          else
+            path="services/$s"
+          fi
+          printf '{"service":"%s","path":"%s"}' "$s" "$path" >> matrix.json
+        done
+        echo ']}' >> matrix.json
+        cat matrix.json
+        echo "matrix=$(cat matrix.json)" >> $GITHUB_OUTPUT
+        echo "::set-output name=matrix::$(cat matrix.json)"
+
+  dispatch:
+    name: Dispatch CI per changed service
+    needs: detect
+    runs-on: ubuntu-latest
+    if: needs.detect.outputs.matrix != ''
+    strategy:
+      matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
+    steps:
+    - name: Call service CI/CD workflow
+      uses: ./.github/workflows/service-ci-cd.yml
+      with:
+        service: ${{ matrix.service }}
+        path: ${{ matrix.path }}
+        deploy: ${{ github.ref == 'refs/heads/main' }}
+        fortify: false

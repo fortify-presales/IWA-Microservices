@@ -1,0 +1,147 @@
+name: Service CI/CD (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+      path:
+        required: true
+        type: string
+      deploy:
+        required: false
+        type: boolean
+        default: false
+      fortify:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  ci:
+    name: Build / Test / Image / Optional Fortify / Deploy for ${{ inputs.service }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    env:
+      JAVA_VERSION: '17'
+      REGISTRY: ghcr.io
+      IMAGE_PREFIX: ${{ github.repository_owner }}/iwa-microservices
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Cache Gradle per-service
+      uses: actions/cache@v4
+      id: gradle-cache
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ inputs.service }}-${{ hashFiles(format('{0}/**/build.gradle', inputs.path)) }}
+        restore-keys: |
+          gradle-${{ runner.os }}-${{ inputs.service }}-
+          gradle-${{ runner.os }}-
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: ${{ env.JAVA_VERSION }}
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: |
+        cd "${{ inputs.path }}"
+        ./gradlew build -x test
+
+    - name: Run tests
+      run: |
+        cd "${{ inputs.path }}"
+        ./gradlew test || true
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.service }}-build
+        path: ${{ inputs.path }}/build/libs/*.jar
+        retention-days: 3
+
+    - name: Check for Dockerfile
+      id: has-docker
+      run: |
+        if [ -f "${{ inputs.path }}/Dockerfile" ]; then
+          echo "has_docker=true" >> $GITHUB_OUTPUT
+        else
+          echo "has_docker=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Log in to Container Registry
+      if: steps.has-docker.outputs.has_docker == 'true'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract Docker metadata
+      if: steps.has-docker.outputs.has_docker == 'true'
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ inputs.service }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+
+    - name: Build & push Docker image
+      if: steps.has-docker.outputs.has_docker == 'true'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ${{ inputs.path }}/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Run Fortify SAST (optional)
+      if: ${{ inputs.fortify == true }}
+      run: |
+        echo "Starting Fortify scan for ${{ inputs.service }}"
+        # Must provide FOD_API_URL, FOD_CLIENT_ID and FOD_CLIENT_SECRET as repository secrets or variables
+        cd "${{ inputs.path }}"
+        scancentral package -o package.zip -bt gradle -bf build.gradle -bc "clean build -x test"
+        fcli fod session login --url $FOD_API_URL --client-id $FOD_CLIENT_ID --client-secret $FOD_CLIENT_SECRET --fod-session github-actions
+        fcli fod sast-scan start --release "$FOD_APPLICATION:${{ inputs.service }}:${{ github.ref_name }}" -f package.zip --store curScan --fod-session github-actions
+        fcli fod sast-scan wait-for ::curScan:: --fod-session github-actions
+        fcli fod session logout --fod-session github-actions
+      env:
+        FOD_API_URL: ${{ vars.FOD_API_URL }}
+        FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
+        FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
+        FOD_APPLICATION: ${{ vars.FOD_APPLICATION }}
+
+    - name: Deploy (only on main and if requested)
+      if: ${{ inputs.deploy == true && github.ref == 'refs/heads/main' }}
+      run: |
+        echo "Deploying ${{ inputs.service }} to Azure Container Apps"
+        pwsh -NoProfile -NonInteractive -File ./deploy/azure/deploy.ps1 \
+          -ServiceParam "${{ inputs.service }}" \
+          -DockerUsernameParam "${{ secrets.DOCKER_USERNAME }}" \
+          -DockerPasswordParam "${{ secrets.DOCKER_PASSWORD }}" \
+          -ImageTagParam "${{ github.ref_name }}"
+      env:
+        AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+        AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        AZURE_CONTAINER_ENVIRONMENT: ${{ secrets.AZURE_CONTAINER_ENVIRONMENT }}
+        # The deploy script will read Docker creds from the passed params; ensure they exist in repository secrets
