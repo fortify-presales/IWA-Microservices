@@ -7,8 +7,11 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
 
+
 permissions:
   contents: read
+  packages: write
+  id-token: write
 
 env:
   SERVICES_DIRS: "apps gateway services"
