@@ -51,7 +51,7 @@ public class ProductRepository {
                           "('Amoxicillin 250mg', 'Antibiotic for bacterial infections', 'Antibiotics', 24.99, 50, true, 'MediPharm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Ibuprofen 200mg', 'Anti-inflammatory pain reliever', 'Pain Relief', 12.99, 150, false, 'HealthCo', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Lisinopril 10mg', 'Blood pressure medication', 'Cardiovascular', 19.99, 75, true, 'CardioMed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
-                          "('Vitamin D3 1000IU', 'Vitamin D supplement', 'Vitamins', 12.99, 200, false, 'NutriLife', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Vitamin D3 1000IU', 'Vitamin D supplement', 'Vitamins', 11.99, 200, false, 'NutriLife', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Cetirizine 10mg', 'Non-drowsy antihistamine for allergy relief', 'Allergy', 7.49, 180, false, 'AllerFree', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Omeprazole 20mg', 'Proton pump inhibitor for acid reflux', 'Gastrointestinal', 15.99, 120, true, 'GastroHeal', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Metformin 500mg', 'Blood sugar control for type 2 diabetes', 'Diabetes', 11.99, 90, true, 'GlucoCare', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +

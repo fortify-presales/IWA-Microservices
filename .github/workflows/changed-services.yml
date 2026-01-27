@@ -145,12 +145,4 @@ jobs:
       path: ${{ matrix.path }}
       deploy: ${{ github.ref == 'refs/heads/main' }}
       fortify: false
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
-      FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
-      AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
-      AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
-      AZURE_CONTAINER_ENVIRONMENT: ${{ secrets.AZURE_CONTAINER_ENVIRONMENT }}
+    secrets: inherit # pass down all secrets to the reusable workflow
