@@ -137,7 +137,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.matrix != ''
     # Run the reusable workflow as a job and expand a matrix from the detected include array
-    uses: .github/workflows/service-ci-cd.yml
+    uses: fortify-presales/IWA-Microservices/.github/workflows/service-ci-cd.yml@main
     strategy:
       matrix: ${{ fromJson(needs.detect.outputs.matrix).include }}
     with:
