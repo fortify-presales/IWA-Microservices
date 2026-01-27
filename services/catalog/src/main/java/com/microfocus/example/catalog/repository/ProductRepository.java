@@ -51,8 +51,29 @@ public class ProductRepository {
                           "('Amoxicillin 250mg', 'Antibiotic for bacterial infections', 'Antibiotics', 24.99, 50, true, 'MediPharm', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Ibuprofen 200mg', 'Anti-inflammatory pain reliever', 'Pain Relief', 12.99, 150, false, 'HealthCo', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Lisinopril 10mg', 'Blood pressure medication', 'Cardiovascular', 19.99, 75, true, 'CardioMed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
-                          "('Vitamin D3 1000IU', 'Vitamin D supplement', 'Vitamins', 14.99, 200, false, 'NutriLife', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
-        
+                          "('Vitamin D3 1000IU', 'Vitamin D supplement', 'Vitamins', 14.99, 200, false, 'NutriLife', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Cetirizine 10mg', 'Non-drowsy antihistamine for allergy relief', 'Allergy', 7.49, 180, false, 'AllerFree', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Omeprazole 20mg', 'Proton pump inhibitor for acid reflux', 'Gastrointestinal', 15.99, 120, true, 'GastroHeal', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Metformin 500mg', 'Blood sugar control for type 2 diabetes', 'Diabetes', 11.99, 90, true, 'GlucoCare', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Salbutamol Inhaler', 'Bronchodilator for asthma and COPD relief', 'Respiratory', 29.99, 60, true, 'BreatheWell', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Hydrocortisone Cream 1%', 'Topical corticosteroid for skin irritation', 'Dermatology', 6.49, 140, false, 'SkinRelief', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Probiotic Capsules', 'Daily probiotic supplement for gut health', 'Supplements', 18.99, 130, false, 'BioFlora', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Calcium Carbonate 500mg', 'Calcium supplement for bone health', 'Supplements', 9.49, 160, false, 'BonePlus', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Zinc 50mg', 'Immune support supplement', 'Supplements', 8.99, 140, false, 'ImmuneMax', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Paracetamol 500mg', 'Analgesic and antipyretic', 'Pain Relief', 5.99, 220, false, 'ReliefLabs', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Naproxen 250mg', 'Long-acting NSAID for pain and inflammation', 'Pain Relief', 13.49, 110, false, 'PainAway', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Insulin Pen', 'Pre-filled insulin pen for diabetes management', 'Diabetes', 49.99, 30, true, 'InsuCare', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Montelukast 10mg', 'Leukotriene receptor antagonist for asthma and allergies', 'Respiratory', 16.99, 85, true, 'AllerMeds', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Fexofenadine 180mg', 'Non-drowsy antihistamine', 'Allergy', 12.49, 140, false, 'AllerFree', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Amlodipine 5mg', 'Calcium channel blocker for hypertension', 'Cardiovascular', 8.99, 110, true, 'CardioMed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Atorvastatin 20mg', 'Cholesterol lowering statin', 'Cardiovascular', 21.99, 95, true, 'LipidCare', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Clopidogrel 75mg', 'Antiplatelet for thrombotic prevention', 'Cardiovascular', 17.49, 60, true, 'ThromboSafe', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Warfarin 2mg', 'Anticoagulant', 'Cardiovascular', 13.99, 40, true, 'Coagula', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Saline Nasal Spray', 'Moisturizing nasal spray', 'Cold & Flu', 4.99, 200, false, 'NasalEase', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Ear Drops for Wax Removal', 'Softens ear wax', 'ENT', 9.49, 120, false, 'EarCare', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Loratadine 10mg', 'Non-drowsy antihistamine', 'Allergy', 6.99, 160, false, 'AllerFree', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Multivitamin Gummies', 'Daily multivitamin for adults', 'Vitamins', 12.99, 180, false, 'NutriLife', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
         try {
             jdbcTemplate.execute(insertSql);
         } catch (Exception e) {
