@@ -59,7 +59,7 @@ public class ProductRepository {
                           "('Hydrocortisone Cream 1%', 'Topical corticosteroid for skin irritation', 'Dermatology', 6.49, 140, false, 'SkinRelief', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Probiotic Capsules', 'Daily probiotic supplement for gut health', 'Supplements', 18.99, 130, false, 'BioFlora', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Calcium Carbonate 500mg', 'Calcium supplement for bone health', 'Supplements', 9.49, 160, false, 'BonePlus', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
-                          "('Zinc 50mg', 'Immune support supplement', 'Supplements', 8.99, 140, false, 'ImmuneMax', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Zinc 50mg', 'Immune support supplement', 'Supplements', 9.99, 140, false, 'ImmuneMax', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Paracetamol 500mg', 'Analgesic and antipyretic', 'Pain Relief', 5.99, 220, false, 'ReliefLabs', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Naproxen 250mg', 'Long-acting NSAID for pain and inflammation', 'Pain Relief', 13.49, 110, false, 'PainAway', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Insulin Pen', 'Pre-filled insulin pen for diabetes management', 'Diabetes', 49.99, 30, true, 'InsuCare', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
