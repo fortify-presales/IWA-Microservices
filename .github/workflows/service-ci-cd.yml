@@ -57,9 +57,6 @@ jobs:
         java-version: ${{ env.JAVA_VERSION }}
         cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
     - name: Build with Gradle
       run: |
         cd "${{ inputs.path }}"
@@ -120,7 +117,7 @@ jobs:
         echo "Starting Fortify scan for ${{ inputs.service }}"
         # Must provide FOD_API_URL, FOD_CLIENT_ID and FOD_CLIENT_SECRET as repository secrets or variables
         cd "${{ inputs.path }}"
-        scancentral package -o package.zip -bt gradle -bf build.gradle -bc "clean build -x test"
+        scancentral package -o package.zip -bt gradle -bf build.gradle -bc "clean build -x test" -oss
         fcli fod session login --url $FOD_API_URL --client-id $FOD_CLIENT_ID --client-secret $FOD_CLIENT_SECRET --fod-session github-actions
         fcli fod sast-scan start --release "$FOD_APPLICATION:${{ inputs.service }}:${{ github.ref_name }}" -f package.zip --store curScan --fod-session github-actions
         fcli fod sast-scan wait-for ::curScan:: --fod-session github-actions
