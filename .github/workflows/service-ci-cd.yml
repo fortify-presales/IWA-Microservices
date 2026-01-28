@@ -111,7 +111,7 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
-    - name: Run Fortify SAST (optional)
+    - name: Run Fortify Security scan
       if: ${{ inputs.fortify == true }}
       run: |
         echo "Starting Fortify scan for ${{ inputs.service }}"
@@ -127,6 +127,14 @@ jobs:
         FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
         FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
         FOD_APPLICATION: ${{ vars.FOD_APPLICATION }}
+
+    - name: Azure Login
+      if: ${{ inputs.deploy == true && github.ref == 'refs/heads/main' }}
+      uses: azure/login@v1
+      with:
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - name: Deploy (only on main and if requested)
       if: ${{ inputs.deploy == true && github.ref == 'refs/heads/main' }}

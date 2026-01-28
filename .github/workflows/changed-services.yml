@@ -6,7 +6,11 @@ on:
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
-
+    inputs:
+      debug:
+        description: 'Set to true to enable preview matrix run'
+        required: false
+        default: 'false'
 
 permissions:
   contents: read
@@ -15,6 +19,7 @@ permissions:
 
 env:
   SERVICES_DIRS: "apps gateway services"
+  DEBUG: 'false'
 
 jobs:
   detect:
@@ -112,7 +117,7 @@ jobs:
     name: Preview matrix (debug)
     needs: detect
     runs-on: ubuntu-latest
-    if: needs.detect.outputs.matrix != ''
+    if: needs.detect.outputs.matrix != '' && (env.DEBUG == 'true' || github.event.inputs.debug == 'true')
     steps:
     - name: Print raw matrix JSON
       run: |
@@ -151,7 +156,7 @@ jobs:
       service: ${{ matrix.service }}
       path: ${{ matrix.path }}
       deploy: ${{ github.ref == 'refs/heads/main' }}
-      fortify: false
+      fortify: true
 
     secrets: inherit
 
