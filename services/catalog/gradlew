@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+# Minimal wrapper script that delegates to the repository-level Gradle wrapper.
+# It calls the root gradlew and passes the current project directory as -p so the build/run happens for this subproject.
+set -e
+DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$DIR/../.." && pwd)"
+exec "$REPO_ROOT/gradlew" -p "$DIR" "$@"
