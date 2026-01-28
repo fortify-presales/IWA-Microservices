@@ -135,17 +135,23 @@ jobs:
       env:
         MATRIX: ${{ needs.detect.outputs.matrix }}
 
+
   dispatch:
     name: Dispatch CI per changed service
     needs: detect
     if: needs.detect.outputs.matrix != ''
-    # Run the reusable workflow as a job and expand a matrix from the detected include array
-    uses: fortify-presales/IWA-Microservices/.github/workflows/service-ci-cd.yml@main
+
     strategy:
-      matrix: ${{ fromJson(needs.detect.outputs.matrix).include }}
+      matrix:
+        include: ${{ fromJson(needs.detect.outputs.matrix).include }}
+
+    uses: fortify-presales/IWA-Microservices/.github/workflows/service-ci-cd.yml@main
+
     with:
       service: ${{ matrix.service }}
       path: ${{ matrix.path }}
       deploy: ${{ github.ref == 'refs/heads/main' }}
       fortify: false
-    secrets: inherit # pass down all secrets to the reusable workflow
+
+    secrets: inherit
+
