@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      debug: ${{ steps.set-matrix.outputs.debug }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -86,6 +87,12 @@ jobs:
           # No services changed — emit an empty matrix output (empty string) so dispatch job is skipped
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+          # export debug flag (false by default)
+          if [ "${{ github.event.inputs.debug }}" = "true" ] || [ "${DEBUG}" = "true" ]; then
+            echo "debug=true" >> $GITHUB_OUTPUT
+          else
+            echo "debug=false" >> $GITHUB_OUTPUT
+          fi
           exit 0
         fi
 
@@ -112,12 +119,18 @@ jobs:
         echo "matrix<<EOF" >> $GITHUB_OUTPUT
         cat matrix.json >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
+        # export debug flag so downstream jobs can read it
+        if [ "${{ github.event.inputs.debug }}" = "true" ] || [ "${DEBUG}" = "true" ]; then
+          echo "debug=true" >> $GITHUB_OUTPUT
+        else
+          echo "debug=false" >> $GITHUB_OUTPUT
+        fi
 
   preview:
     name: Preview matrix (debug)
     needs: detect
     runs-on: ubuntu-latest
-    if: needs.detect.outputs.matrix != '' && (env.DEBUG == 'true' || github.event.inputs.debug == 'true')
+    if: needs.detect.outputs.matrix != '' && needs.detect.outputs.debug == 'true'
     steps:
     - name: Print raw matrix JSON
       run: |
