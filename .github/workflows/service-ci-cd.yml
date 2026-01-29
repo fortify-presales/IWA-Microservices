@@ -20,7 +20,7 @@ on:
 
 jobs:
   ci:
-    name: Build / Test / Image / Optional Fortify / Deploy for ${{ inputs.service }}
+    name: Build, Test, Scan, Deploy for ${{ inputs.service }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -111,22 +111,41 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
+    #- name: Run Fortify Security scan
+    #  if: ${{ inputs.fortify == true }}
+    #  run: |
+    #    echo "Starting Fortify scan for ${{ inputs.service }}"
+    #    # Must provide FOD_API_URL, FOD_CLIENT_ID and FOD_CLIENT_SECRET as repository secrets or variables
+    #    cd "${{ inputs.path }}"
+    #    scancentral package -o package.zip -bt gradle -bf build.gradle -bc "clean build -x test" -oss
+    #    fcli fod session login --url $FOD_API_URL --client-id $FOD_CLIENT_ID --client-secret $FOD_CLIENT_SECRET --fod-session github-actions
+    #    fcli fod sast-scan start --release "$FOD_APPLICATION:${{ inputs.service }}:${{ github.ref_name }}" -f package.zip --store curScan --fod-session github-actions
+    #    fcli fod sast-scan wait-for ::curScan:: --fod-session github-actions
+    #    fcli fod session logout --fod-session github-actions
+    #  env:
+    #    FOD_API_URL: ${{ vars.FOD_API_URL }}
+    #    FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
+    #    FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
+    #    FOD_APPLICATION: ${{ vars.FOD_APPLICATION }}
+
     - name: Run Fortify Security scan
       if: ${{ inputs.fortify == true }}
-      run: |
-        echo "Starting Fortify scan for ${{ inputs.service }}"
-        # Must provide FOD_API_URL, FOD_CLIENT_ID and FOD_CLIENT_SECRET as repository secrets or variables
-        cd "${{ inputs.path }}"
-        scancentral package -o package.zip -bt gradle -bf build.gradle -bc "clean build -x test" -oss
-        fcli fod session login --url $FOD_API_URL --client-id $FOD_CLIENT_ID --client-secret $FOD_CLIENT_SECRET --fod-session github-actions
-        fcli fod sast-scan start --release "$FOD_APPLICATION:${{ inputs.service }}:${{ github.ref_name }}" -f package.zip --store curScan --fod-session github-actions
-        fcli fod sast-scan wait-for ::curScan:: --fod-session github-actions
-        fcli fod session logout --fod-session github-actions
+      uses: fortify/github-action@v3
+      #: fortify/github-action@feat/fcli-ci
       env:
-        FOD_API_URL: ${{ vars.FOD_API_URL }}
+        SOURCE_DIR: ${{ inputs.path }}
+        FCLI_BOOTSTRAP_URL: https://github.com/fortify/fcli/releases/download/dev_v3.x/fcli-linux.tgz
+        FOD_URL: ${{ vars.FOD_URL }}
         FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
         FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
-        FOD_APPLICATION: ${{ vars.FOD_APPLICATION }}
+        FOD_RELEASE: "${{ vars.FOD_APPLICATION }}:${{ inputs.service }}:${{ github.ref_name }}"
+        DO_SETUP: true
+        SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}:{1}:{2}" --sdlc-status Development --app-owner {3} --assessment-type "{4}"', vars.FOD_APPLICATION, inputs.service, vars.FOD_PARENT_RELEASE, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
+        PACKAGE_EXTRA_OPTS: -bt gradle -bf build.gradle -bc "clean build -x test" -oss
+        DO_SAST_SCAN: true
+        DO_RELEASE_SUMMARY: true
+        DO_CHECK_POLICY: true
+        DO_PR_COMMENT: true
 
     - name: Azure Login
       if: ${{ inputs.deploy == true && github.ref == 'refs/heads/main' }}
