@@ -126,32 +126,32 @@ jobs:
           echo "debug=false" >> $GITHUB_OUTPUT
         fi
 
-  preview:
-    name: Preview matrix (debug)
-    needs: detect
-    runs-on: ubuntu-latest
-    if: needs.detect.outputs.matrix != '' && needs.detect.outputs.debug == 'true'
-    steps:
-    - name: Print raw matrix JSON
-      run: |
-        echo "----- Raw matrix JSON -----"
-        echo "${{ needs.detect.outputs.matrix }}"
-        echo "---------------------------"
+  #preview:
+  #  name: Preview matrix (debug)
+  #  needs: detect
+  #  runs-on: ubuntu-latest
+  #  if: needs.detect.outputs.matrix != '' && needs.detect.outputs.debug == 'true'
+  #  steps:
+  #  - name: Print raw matrix JSON
+  #    run: |
+  #      echo "----- Raw matrix JSON -----"
+  #      echo "${{ needs.detect.outputs.matrix }}"
+  #      echo "---------------------------"
 
-    - name: List matrix entries
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const m = JSON.parse(process.env.MATRIX || '{}')
-          console.log('Parsed matrix:')
-          console.log(JSON.stringify(m, null, 2))
-          if (Array.isArray(m.include)) {
-            m.include.forEach(it => console.log(`service=${it.service}, path=${it.path}`))
-          } else {
-            console.log('No include array found in matrix')
-          }
-      env:
-        MATRIX: ${{ needs.detect.outputs.matrix }}
+  #  - name: List matrix entries
+  #    uses: actions/github-script@v7
+  #    with:
+  #      script: |
+  #        const m = JSON.parse(process.env.MATRIX || '{}')
+  #        console.log('Parsed matrix:')
+  #        console.log(JSON.stringify(m, null, 2))
+  #        if (Array.isArray(m.include)) {
+  #          m.include.forEach(it => console.log(`service=${it.service}, path=${it.path}`))
+  #        } else {
+  #          console.log('No include array found in matrix')
+  #        }
+  #    env:
+  #      MATRIX: ${{ needs.detect.outputs.matrix }}
 
 
   dispatch:

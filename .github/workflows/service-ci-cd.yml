@@ -38,6 +38,31 @@ jobs:
       with:
         fetch-depth: 0
 
+    # 1) When the workflow is triggered by a pull_request:
+    - name: Set parent branch from PR event
+      if: ${{ github.event_name == 'pull_request' }}
+      run: |
+        echo "PARENT_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+    # 2) When not a PR: call GitHub API to find an open PR whose head is this branch
+    - name: Find parent branch via open PR (fallback)
+      if: ${{ github.event_name != 'pull_request' }}
+      uses: actions/github-script@v6
+      id: find_parent
+      with:
+        script: |
+          const branch = process.env.GITHUB_REF_NAME || github.context.ref.replace('refs/heads/','');
+          const prs = await github.rest.pulls.list({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            head: `${context.repo.owner}:${branch}`,
+          });
+          if (prs.data.length) return prs.data[0].base.ref;
+          return '';
+    - name: Export parent branch if found
+      if: ${{ steps.find_parent.outputs.result != '' }}
+      run: echo "PARENT_BRANCH=${{ steps.find_parent.outputs.result }}" >> $GITHUB_ENV
+
     - name: Cache Gradle per-service
       uses: actions/cache@v4
       id: gradle-cache
@@ -111,23 +136,6 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
-    #- name: Run Fortify Security scan
-    #  if: ${{ inputs.fortify == true }}
-    #  run: |
-    #    echo "Starting Fortify scan for ${{ inputs.service }}"
-    #    # Must provide FOD_API_URL, FOD_CLIENT_ID and FOD_CLIENT_SECRET as repository secrets or variables
-    #    cd "${{ inputs.path }}"
-    #    scancentral package -o package.zip -bt gradle -bf build.gradle -bc "clean build -x test" -oss
-    #    fcli fod session login --url $FOD_API_URL --client-id $FOD_CLIENT_ID --client-secret $FOD_CLIENT_SECRET --fod-session github-actions
-    #    fcli fod sast-scan start --release "$FOD_APPLICATION:${{ inputs.service }}:${{ github.ref_name }}" -f package.zip --store curScan --fod-session github-actions
-    #    fcli fod sast-scan wait-for ::curScan:: --fod-session github-actions
-    #    fcli fod session logout --fod-session github-actions
-    #  env:
-    #    FOD_API_URL: ${{ vars.FOD_API_URL }}
-    #    FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
-    #    FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
-    #    FOD_APPLICATION: ${{ vars.FOD_APPLICATION }}
-
     - name: Run Fortify Security scan
       if: ${{ inputs.fortify == true }}
       #uses: fortify/github-action@v3
@@ -140,12 +148,12 @@ jobs:
         FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
         FOD_RELEASE: "${{ vars.FOD_APPLICATION }}${{ vars.FOD_APP_NAME_POSTFIX }}:${{ inputs.service }}:${{ github.ref_name }}"
         DO_SETUP: true
-        SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}{1}:{2}:{3}" --sdlc-status Development --app-owner {4} --assessment-type "{5}"', vars.FOD_APPLICATION, vars.FOD_APP_NAME_POSTFIX, inputs.service, vars.FOD_PARENT_RELEASE_NAME, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
+        SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}{1}:{2}:{3}" --sdlc-status Development --app-owner {4} --assessment-type "{5}"', vars.FOD_APPLICATION, vars.FOD_APP_NAME_POSTFIX, inputs.service, env.PARENT_BRANCH, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
         PACKAGE_EXTRA_OPTS: -bt gradle -bf build.gradle -bc "clean build -x test" -oss
         DO_SAST_SCAN: true
         DO_RELEASE_SUMMARY: true
         DO_CHECK_POLICY: true
-        DO_PR_COMMENT: true
+        DO_PR_COMMENT: ${{ github.event_name == 'pull_request' }}
 
     - name: Azure Login
       if: ${{ inputs.deploy == true && github.ref == 'refs/heads/main' }}
