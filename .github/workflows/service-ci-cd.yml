@@ -138,9 +138,9 @@ jobs:
         FOD_URL: ${{ vars.FOD_URL }}
         FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
         FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
-        FOD_RELEASE: "${{ vars.FOD_APPLICATION }}:${{ inputs.service }}:${{ github.ref_name }}"
+        FOD_RELEASE: "${{ vars.FOD_APPLICATION }}${{ vars.FOD_APP_NAME_POSTFIX }}:${{ inputs.service }}:${{ github.ref_name }}"
         DO_SETUP: true
-        SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}:{1}:{2}" --sdlc-status Development --app-owner {3} --assessment-type "{4}"', vars.FOD_APPLICATION, inputs.service, vars.FOD_PARENT_RELEASE_NAME, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
+        SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}{1}:{2}:{3}" --sdlc-status Development --app-owner {4} --assessment-type "{5}"', vars.FOD_APPLICATION, vars.FOD_APP_NAME_POSTFIX, inputs.service, vars.FOD_PARENT_RELEASE_NAME, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
         PACKAGE_EXTRA_OPTS: -bt gradle -bf build.gradle -bc "clean build -x test" -oss
         DO_SAST_SCAN: true
         DO_RELEASE_SUMMARY: true
