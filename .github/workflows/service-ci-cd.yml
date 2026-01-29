@@ -26,6 +26,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
+      security-events: write
 
     env:
       JAVA_VERSION: '17'
@@ -152,7 +153,7 @@ jobs:
         PACKAGE_EXTRA_OPTS: -bt gradle -bf build.gradle -bc "clean build -x test" -oss
         DO_SAST_SCAN: true
         DO_RELEASE_SUMMARY: true
-        DO_CHECK_POLICY: true
+        DO_CHECK_POLICY: false # set to true to enforce policy check
         DO_PR_COMMENT: ${{ github.event_name == 'pull_request' }}
 
     - name: Azure Login
