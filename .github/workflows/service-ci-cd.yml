@@ -130,8 +130,8 @@ jobs:
 
     - name: Run Fortify Security scan
       if: ${{ inputs.fortify == true }}
-      uses: fortify/github-action@v3
-      #: fortify/github-action@feat/fcli-ci
+      #uses: fortify/github-action@v3
+      uses: fortify/github-action@feat/fcli-ci
       env:
         SOURCE_DIR: ${{ inputs.path }}
         FCLI_BOOTSTRAP_URL: https://github.com/fortify/fcli/releases/download/dev_v3.x/fcli-linux.tgz
@@ -140,7 +140,7 @@ jobs:
         FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
         FOD_RELEASE: "${{ vars.FOD_APPLICATION }}:${{ inputs.service }}:${{ github.ref_name }}"
         DO_SETUP: true
-        SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}:{1}:{2}" --sdlc-status Development --app-owner {3} --assessment-type "{4}"', vars.FOD_APPLICATION, inputs.service, vars.FOD_PARENT_RELEASE, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
+        SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}:{1}:{2}" --sdlc-status Development --app-owner {3} --assessment-type "{4}"', vars.FOD_APPLICATION, inputs.service, vars.FOD_PARENT_RELEASE_NAME, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
         PACKAGE_EXTRA_OPTS: -bt gradle -bf build.gradle -bc "clean build -x test" -oss
         DO_SAST_SCAN: true
         DO_RELEASE_SUMMARY: true
