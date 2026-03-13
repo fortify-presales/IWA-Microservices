@@ -67,6 +67,8 @@ jobs:
         while IFS= read -r f; do
           if [[ "$f" == apps/gateway/* ]] || [[ "$f" == apps/gateway"" ]]; then
             svc="gateway"
+          elif [[ "$f" == "apps/auth-server" ]]; then
+            svc="auth-server"
           elif [[ "$f" == apps/* ]]; then
             # apps/<name>/...
             svc=$(echo "$f" | cut -d'/' -f2)
@@ -109,6 +111,8 @@ jobs:
           # decide path
           if [ "$s" = "gateway" ]; then
             path="apps/gateway"
+          elif [ "$s" = "auth-server" ]; then
+            path="apps/auth-server"
           else
             path="services/$s"
           fi

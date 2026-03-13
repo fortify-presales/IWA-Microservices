@@ -35,18 +35,8 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.KeyFactory;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
-import com.nimbusds.jose.jwk.RSAKey.Builder;
-import com.nimbusds.jose.util.IOUtils;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
@@ -86,7 +76,11 @@ public class AuthServerConfig {
     }
 
     @Bean
-    public RegisteredClientRepository registeredClientRepository(PasswordEncoder passwordEncoder) {
+    public RegisteredClientRepository registeredClientRepository(
+            PasswordEncoder passwordEncoder,
+            @Value("${demo-spa.redirect-uris:http://localhost:3000/callback,http://localhost:5173/callback}") String demoSpaRedirectUris,
+            @Value("${demo-spa.postlogout-redirect-uris:http://localhost:3000,http://localhost:5173}") String demoSpaPostLogoutUris
+    ) {
         RegisteredClient gatewayClient = RegisteredClient.withId(UUID.randomUUID().toString())
             .clientId("gateway-client")
             .clientSecret(passwordEncoder.encode("gateway-secret"))
@@ -110,15 +104,12 @@ public class AuthServerConfig {
                 .build())
             .build();
 
-        RegisteredClient spaClient = RegisteredClient.withId(UUID.randomUUID().toString())
+        // Build the SPA RegisteredClient using configured redirect URIs
+        RegisteredClient.Builder spaBuilder = RegisteredClient.withId(UUID.randomUUID().toString())
             .clientId("demo-spa")
             .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
             .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
             .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-            .redirectUri("http://localhost:3000/callback")
-            .redirectUri("http://localhost:5173/callback")
-            .postLogoutRedirectUri("http://localhost:3000")
-            .postLogoutRedirectUri("http://localhost:5173")
             .scope(OidcScopes.OPENID)
             .scope("profile")
             .scope("customers.read")
@@ -130,8 +121,21 @@ public class AuthServerConfig {
             .tokenSettings(TokenSettings.builder()
                 .accessTokenTimeToLive(Duration.ofMinutes(15))
                 .reuseRefreshTokens(false)
-                .build())
-            .build();
+                .build());
+
+        // Add redirect URIs from comma-separated property
+        for (String uri : demoSpaRedirectUris.split(",")) {
+            String trimmed = uri.trim();
+            if (!trimmed.isEmpty()) spaBuilder.redirectUri(trimmed);
+        }
+
+        // Add post-logout redirect URIs
+        for (String uri : demoSpaPostLogoutUris.split(",")) {
+            String trimmed = uri.trim();
+            if (!trimmed.isEmpty()) spaBuilder.postLogoutRedirectUri(trimmed);
+        }
+
+        RegisteredClient spaClient = spaBuilder.build();
 
         return new InMemoryRegisteredClientRepository(gatewayClient, spaClient);
     }
