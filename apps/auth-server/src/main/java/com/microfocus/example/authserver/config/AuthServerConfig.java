@@ -112,6 +112,7 @@ public class AuthServerConfig {
             .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
             .scope(OidcScopes.OPENID)
             .scope("profile")
+            .scope("catalog.read")
             .scope("customers.read")
             .scope("customers.write")
             .clientSettings(ClientSettings.builder()
