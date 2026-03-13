@@ -141,7 +141,7 @@ jobs:
     - name: Install Fortify CLI
       if: ${{ inputs.fortify == true }}
       run: |
-        npx @fortify/setup@v2 env init --tools=fcli:bootstrapped
+        npx @fortify/setup@v2 env init --tools=fcli:bootstrapped,sc-client:latest
         npx @fortify/setup@v2 env github
 
     - name: Run Fortify Security scan
