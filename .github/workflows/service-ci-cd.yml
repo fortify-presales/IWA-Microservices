@@ -137,13 +137,19 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
+    - name: List files in context for debugging
+      run: |
+        echo "Current dir: $(pwd)"
+        echo "Files in context:"
+        find . -maxdepth 5 -type f -exec ls -l {} \;
+
     - name: Run Fortify Security scan
       if: ${{ inputs.fortify == true }}
       timeout-minutes: 360
-      #uses: fortify/github-action@v3
-      uses: fortify/github-action@feat/fcli-ci
+      uses: fortify/github-action@v3
+      #uses: fortify/github-action@feat/fcli-ci
       env:
-        FCLI_BOOTSTRAP_URL: https://github.com/fortify/fcli/releases/download/dev_v3.x/fcli-linux.tgz
+        #FCLI_BOOTSTRAP_URL: https://github.com/fortify/fcli/releases/download/dev_v3.x/fcli-linux.tgz
         FOD_URL: ${{ vars.FOD_URL }}
         FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
         FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
