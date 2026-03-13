@@ -34,6 +34,9 @@ public class HealthController {
     @Value("${services.notifications.url}")
     private String notificationsServiceUrl;
     
+    @Value("${services.auth.url}")
+    private String authServiceUrl;
+
     @GetMapping("/health")
     public Map<String, Object> health() {
         Map<String, Object> health = new HashMap<>();
@@ -48,7 +51,8 @@ public class HealthController {
         services.put("prescriptions", prescriptionsServiceUrl);
         services.put("inventory", inventoryServiceUrl);
         services.put("notifications", notificationsServiceUrl);
-        
+        services.put("auth", authServiceUrl);
+
         health.put("services", services);
         
         return health;

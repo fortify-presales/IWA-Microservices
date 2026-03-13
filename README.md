@@ -27,7 +27,8 @@ The application consists of:
 - **Notifications Service** (8087) - Email/SMS notifications with command injection
 
 ### Applications
-- **API Gateway** (8080) - Routes requests to microservices (no authentication/authorization)
+- **Auth Server** (9000) - Demo OAuth2 Authorization Server issuing JWT access tokens
+- **API Gateway** (8080) - Routes requests to microservices and validates JWT scopes
 - **Frontend SPA** (planned) - React-based user interface
 
 ### Shared Libraries
@@ -85,11 +86,12 @@ This application deliberately includes the following security issues:
 
 4. **Or use Docker Compose**
    ```bash
-   docker-compose up --build
+   docker compose up --build
    ```
 
 ### Access Services
 
+- **Auth Server**: http://localhost:9000
 - **API Gateway**: http://localhost:8080
 - **Catalog Service**: http://localhost:8081/api/products
 - **Customers Service**: http://localhost:8082/api/customers
@@ -129,6 +131,19 @@ If services run on different ports, update the gateway service URLs in `apps/gat
 
 ## Testing Vulnerabilities
 
+### OAuth2 Authentication Flow (Customers via Gateway)
+
+```bash
+# Get token from auth server
+curl -X POST http://localhost:9000/oauth2/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=gateway-client&client_secret=gateway-secret&scope=customers.read"
+
+# Use token to call customers endpoint through gateway
+curl http://localhost:8080/api/customers/1 \
+  -H "Authorization: Bearer <access_token>"
+```
+
 ### SQL Injection (Catalog Service)
 
 ```bash
@@ -142,13 +157,9 @@ curl "http://localhost:8081/api/products?sortBy=name;DROP%20TABLE%20products;--&
 ### Authentication Bypass (Customers Service)
 
 ```bash
-# SQL injection in login
-curl -X POST http://localhost:8082/api/customers/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"x' OR '1'='1"}'
-
-# Plaintext passwords visible
-curl http://localhost:8082/api/customers/1
+# Plaintext passwords visible after obtaining a valid token with customers.read scope
+curl http://localhost:8080/api/customers/1 \
+  -H "Authorization: Bearer <access_token>"
 ```
 
 ### IDOR (Orders & Prescriptions)
@@ -188,6 +199,58 @@ curl -X POST http://localhost:8087/api/notifications/email \
 # View exposed configuration
 curl http://localhost:8084/api/payments/config
 ```
+
+## CI / GitHub Actions
+
+Note: The `.github/workflows` directory contains CI configuration files for GitHub Actions; these workflows run build, test, and optional security scanning steps on each push or pull request. If you see an incorrect description elsewhere, this repository uses GitHub Actions (not Azure Pipelines) for the default CI workflows. Inspect `.github/workflows/*.yml` for specifics.
+
+## Running the Authorization Server (dev)
+
+The project includes a simple OAuth2 Authorization Server (used for demos and local testing) at `apps/auth-server`. Start the app and then you can request tokens at `http://localhost:9000/oauth2/token`.
+
+- Example client (confidential): `gateway-client` / `gateway-secret` (client_credentials)
+- Example public client: `demo-spa` (authorization_code + PKCE)
+- Developer users (in-memory): `user1`/`password`, `user2`/`password2`, and `admin`/`password` (admin has role `ADMIN`). These credentials are for local/dev only.
+
+### Token script (PowerShell)
+
+A convenience script is provided at `scripts/token-request.ps1` demonstrating client_credentials requests and a sample API call through the gateway. Run it after starting the auth server and gateway:
+
+```powershell
+# Start servers (examples; adjust paths and commands to your environment)
+# In one terminal: cd apps/auth-server && ./gradlew bootRun
+# In another: cd gateway && ./gradlew bootRun
+
+# Run the token script
+.
+\scripts\token-request.ps1
+```
+
+## Fortify Gradle plugin (local scanning)
+
+This repository integrates the Fortify Gradle plugin for local SAST scanning. To run a local Fortify scan (assuming Fortify tools and credentials are available), you can use the Gradle task exposed by the plugin. Example:
+
+```powershell
+# From repository root (Windows PowerShell)
+./gradlew :apps:auth-server:fortifyScan
+# or run a scan across the entire multi-project build if configured
+./gradlew fortifyScan
+```
+
+Notes:
+- You must have Fortify ScanCentral / CLI installed and configured according to your environment.
+- The build may rely on `fortify.config` and `gradle.properties` entries for credentials and server endpoints. See `fortify.config` for reference.
+- Running Fortify locally may upload results to Fortify servers depending on plugin configuration; review plugin options before executing in a live environment.
+
+## Security testing notes (dev-only insecure settings)
+
+This project intentionally uses simple, in-memory credentials and a persisted dev JWK to make local testing and security scanning easier. Do not use these settings in production. Examples of insecure patterns to look for during scans:
+
+- Default or weak credentials (user1/password, admin/password, gateway-client/gateway-secret)
+- In-memory user stores and clients
+- No MFA
+- Development JWK persisted under `~/.iwa-dev-auth/auth-jwk.json`
+- Potentially permissive redirect URIs for demo SPA
 
 ## CI/CD Pipeline
 
@@ -389,10 +452,11 @@ Notes: you must be signed into Azure CLI with the correct subscription and have 
 ```
 IWA-Microservices/
 ├── apps/
+│   ├── auth-server/          # OAuth2 Authorization Server (demo)
 │   └── gateway/              # API Gateway service
 ├── services/
 │   ├── catalog/              # Product catalog service
-│   ├── customers/            # Customer & auth service
+│   ├── customers/            # Customer service (resource server)
 │   ├── orders/               # Order management service
 │   ├── payments/             # Payment processing service
 │   ├── prescriptions/        # Prescription management service
@@ -459,12 +523,14 @@ See LICENSE file for details.
 
 ## Postman collection (quick demo)
 
-A ready-made Postman collection is included for the Customers service to exercise login, register, update and token validation flows.
+A ready-made Postman collection is included for the Customers service to exercise register and customer API flows with OAuth2 bearer tokens.
 
 Files (relative to repo root):
 - `services/customers/postman/CustomersService.postman_collection.json` (the collection)
-- `services/customers/postman/CustomersService.postman_environment.json` (postman environment with `username`/`password` defaults)
+- `services/customers/postman/CustomersService.postman_environment.json` (postman environment)
 - `services/customers/postman/package.json` (helper npm script to run Newman)
+
+Before running protected requests, obtain an access token from `http://localhost:9000/oauth2/token` and set it in the `Authorization` header as `Bearer <token>`.
 
 Run the collection (quick, no install):
 
@@ -482,5 +548,5 @@ npm run run-collection
 ```
 
 Notes
-- The environment defaults to `username = john.doe` and `password = password123` (seeded in the demo DB). If you prefer another user, edit the environment file or update variables in the Postman GUI.
-- The collection stores `token` (full `Bearer <jwt>`) and `rawToken` (compact JWT) after login; the validate request uses `rawToken` to avoid base64 decoding errors.
+- The old `/api/customers/login` and `/api/customers/validate` flows are deprecated.
+- Use scopes like `customers.read` and `customers.write` when requesting tokens.

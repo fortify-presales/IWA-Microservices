@@ -1,0 +1,191 @@
+{
+  "info": {
+    "name": "IWA-Microservices - Customers Service",
+    "_postman_id": "customers-service-demo-collection",
+    "description": "Collection of requests to exercise the Customers service (register, list, get, update, validate). The old /login endpoint was replaced by a central OAuth2 Authorization Server; this collection demonstrates obtaining a token from the auth server (client_credentials) and using it to call protected endpoints. Uses environment variables: baseUrl, authUrl, token, rawToken, userId, username, password.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8082/api/customers",
+      "type": "string"
+    },
+    {
+      "key": "authUrl",
+      "value": "http://localhost:9000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rawToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "user1",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "password",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{rawToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01 - Get token (client_credentials)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "grant_type", "value": "client_credentials", "type": "text" },
+            { "key": "client_id", "value": "gateway-client", "type": "text" },
+            { "key": "client_secret", "value": "gateway-secret", "type": "text" },
+            { "key": "scope", "value": "customers.read customers.write", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{authUrl}}/oauth2/token",
+          "host": [
+            "{{authUrl}}/oauth2/token"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Save access_token and rawToken to environment variables",
+              "if (pm.response.code === 200) {",
+              "  var json = pm.response.json();",
+              "  if (json.access_token) {",
+              "    // store full header value including 'Bearer ' prefix so it can be used directly in Authorization header",
+              "    pm.environment.set('token', 'Bearer ' + json.access_token);",
+              "    // also store the raw JWT for requests that expect the token value in the body",
+              "    pm.environment.set('rawToken', json.access_token);",
+              "  }",
+              "}",
+              "pm.test('Token endpoint returns 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Register (optional)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"new.user\",\n  \"password\": \"P@ssw0rd!\",\n  \"email\": \"new.user@example.com\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{baseUrl}}/register", "host": [ "{{baseUrl}}/register" ] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": [ "pm.test('Register returns 200 or 400 (if exists)', function () { pm.expect([200,400]).to.include(pm.response.code); });" ] }
+        }
+      ]
+    },
+    {
+      "name": "03 - List all customers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}", "host": [ "{{baseUrl}}" ] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "pm.test('List returned', function () { pm.response.to.have.status(200); });",
+              "// If username exists, capture its id for convenience",
+              "if (Array.isArray(json)) {",
+              "  for (var i = 0; i < json.length; i++) {",
+              "    if (json[i].username === pm.environment.get('username')) {",
+              "      pm.environment.set('userId', json[i].id + '');",
+              "      break;",
+              "    }",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Get customer by id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/{{userId}}", "host": [ "{{baseUrl}}/{{userId}}" ] }
+      },
+      "event": [ { "listen": "test", "script": { "exec": [ "pm.test('Get by id returns 200 or 404', function () { pm.expect([200,404]).to.include(pm.response.code); });" ] } } ]
+    },
+    {
+      "name": "05 - Update customer",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"email\": \"{{username}}@example.com\",\n  \"firstName\": \"Updated\",\n  \"lastName\": \"User\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{baseUrl}}/{{userId}}", "host": [ "{{baseUrl}}/{{userId}}" ] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Update returns 200 or 401/403', function () { pm.expect([200,401,403,404,400]).to.include(pm.response.code); });",
+              "if (pm.response.code === 200) {",
+              "  var j = pm.response.json();",
+              "  if (j && j.id) { pm.environment.set('userId', j.id + ''); }",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

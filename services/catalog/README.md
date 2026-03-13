@@ -1,8 +1,8 @@
-# Catalog Service - Demo flow and API key usage
+# Catalog Service
 
-This directory contains a small PowerShell demo script (`demo-flow.ps1`) that exercises the Catalog service APIs. The catalog service exposes public GET endpoints (list, search, category, get-by-id) and secured write endpoints (POST/PUT/DELETE) protected by a simple API key header for demo purposes.
+## Overview
 
-> WARNING: This project intentionally contains security weaknesses for training/demo purposes (hard-coded demo API key, SQL injection vulnerabilities, permissive CORS). Do NOT use these patterns in production.
+This service provides a simple product catalog API with endpoints to list, search, create, update, and delete products. It includes both public endpoints (for listing/searching) and secured endpoints (for creating/updating/deleting) that require an API key.
 
 ## Demo script
 
@@ -19,7 +19,7 @@ The script will by default use:
 - Base URL: `http://localhost:8081/api/products`
 - Demo API key: `demo-secret-key`
 
-Usage examples
+## Usage examples
 
 Run the demo flow from the repository root (PowerShell):
 
@@ -103,7 +103,3 @@ Notes and recommendations
 - The demo API key is hard-coded for convenience in this training/demo repository. For real apps, keys should be stored and validated securely, rotated, and scoped.
 - The repository contains intentional SQL injection vulnerabilities to demonstrate security testing techniques — do not copy these patterns.
 - If the demo app fails to start due to a port conflict, stop the conflicting process or run the service on another port.
-
-If you want, I can:
-- Make the demo script work on a different default port (if your local instance runs on a different port), or
-- Add a README section with troubleshooting steps and expected outputs.

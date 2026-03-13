@@ -1,0 +1,14 @@
+{
+  "name": "catalog-postman",
+  "version": "1.0.0",
+  "description": "Postman collection runner for Catalog service (uses Newman)",
+  "private": true,
+  "scripts": {
+    "collection": "npx newman run CatalogService.postman_collection_standalone.json --delay-request 50 --reporters cli",
+    "collection-with-env": "npx newman run CatalogService.postman_collection.json -e CatalogService.postman_environment.json --delay-request 50 --reporters cli"
+  },
+  "devDependencies": {
+    "newman": "^5.3.0"
+  }
+}
+

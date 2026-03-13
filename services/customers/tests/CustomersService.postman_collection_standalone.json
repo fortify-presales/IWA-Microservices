@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Customers Service - Demo Collection",
+    "name": "IWA-Microservices - Customers Service",
     "_postman_id": "customers-service-demo-collection",
-    "description": "Collection of requests to exercise the Customers service (login, register, list, get, update, validate). Uses environment variables: baseUrl, token, userId, username, password.",
+    "description": "Collection of requests to exercise the Customers service (register, list, get, update, validate). The old /login endpoint was replaced by a central OAuth2 Authorization Server; this collection demonstrates obtaining a token from the auth server (client_credentials) and using it to call protected endpoints. Uses collection variables: baseUrl, authUrl, token, rawToken, userId, username, password.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,50 +12,70 @@
       "type": "string"
     },
     {
+      "key": "authUrl",
+      "value": "http://localhost:9000",
+      "type": "string"
+    },
+    {
       "key": "token",
       "value": "",
       "type": "string"
     },
     {
-      "key": "userId",
+      "key": "rawToken",
       "value": "",
       "type": "string"
     },
     {
+      "key": "userId",
+      "value": "2",
+      "type": "string"
+    },
+    {
       "key": "username",
-      "value": "john.doe",
+      "value": "user1",
       "type": "string"
     },
     {
       "key": "password",
-      "value": "password123",
+      "value": "password",
       "type": "string"
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{rawToken}}",
+        "type": "string"
+      }
+    ]
+  },
   "item": [
     {
-      "name": "01 - Login (get token)",
+      "name": "01 - Get token (client_credentials)",
       "request": {
         "method": "POST",
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json"
+            "value": "application/x-www-form-urlencoded"
           }
         ],
         "body": {
-          "mode": "raw",
-          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "grant_type", "value": "client_credentials", "type": "text" },
+            { "key": "client_id", "value": "gateway-client", "type": "text" },
+            { "key": "client_secret", "value": "gateway-secret", "type": "text" },
+            { "key": "scope", "value": "customers.read customers.write", "type": "text" }
+          ]
         },
         "url": {
-          "raw": "{{baseUrl}}/login",
+          "raw": "{{authUrl}}/oauth2/token",
           "host": [
-            "{{baseUrl}}/login"
+            "{{authUrl}}/oauth2/token"
           ]
         }
       },
@@ -64,23 +84,17 @@
           "listen": "test",
           "script": {
             "exec": [
-              "// Save token and customerId to environment variables",
+              "// Save access_token and rawToken to collection variables",
               "if (pm.response.code === 200) {",
               "  var json = pm.response.json();",
-              "  if (json.token) {",
+              "  if (json.access_token) {",
               "    // store full header value including 'Bearer ' prefix so it can be used directly in Authorization header",
-              "    pm.environment.set('token', 'Bearer ' + json.token);",
-              "    // also store the raw JWT (without the 'Bearer ' prefix) for requests that expect the token value in the body",
-              "    pm.environment.set('rawToken', json.token);",
-              "  }",
-              "  if (json.customerId) {",
-              "    pm.environment.set('userId', json.customerId.toString());",
-              "  }",
-              "  if (json.username) {",
-              "    pm.environment.set('username', json.username);",
+              "    pm.collectionVariables.set('token', 'Bearer ' + json.access_token);",
+              "    // also store the raw JWT for requests that expect the token value in the body",
+              "    pm.collectionVariables.set('rawToken', json.access_token);",
               "  }",
               "}",
-              "pm.test('Login returns 200', function () { pm.response.to.have.status(200); });"
+              "pm.test('Token endpoint returns 200', function () { pm.response.to.have.status(200); });"
             ]
           }
         }
@@ -121,11 +135,11 @@
             "exec": [
               "var json = pm.response.json();",
               "pm.test('List returned', function () { pm.response.to.have.status(200); });",
-              "// If john.doe exists, capture its id for convenience",
+              "// If username exists, capture its id for convenience",
               "if (Array.isArray(json)) {",
               "  for (var i = 0; i < json.length; i++) {",
-              "    if (json[i].username === pm.environment.get('username')) {",
-              "      pm.environment.set('userId', json[i].id + '');",
+              "    if (json[i].username === pm.collectionVariables.get('username')) {",
+              "      pm.collectionVariables.set('userId', json[i].id + '');",
               "      break;",
               "    }",
               "  }",
@@ -145,12 +159,11 @@
       "event": [ { "listen": "test", "script": { "exec": [ "pm.test('Get by id returns 200 or 404', function () { pm.expect([200,404]).to.include(pm.response.code); });" ] } } ]
     },
     {
-      "name": "05 - Update customer (auth required)",
+      "name": "05 - Update customer",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "{{token}}" }
+          { "key": "Content-Type", "value": "application/json" }
         ],
         "body": {
           "mode": "raw",
@@ -167,29 +180,8 @@
               "pm.test('Update returns 200 or 401/403', function () { pm.expect([200,401,403,404,400]).to.include(pm.response.code); });",
               "if (pm.response.code === 200) {",
               "  var j = pm.response.json();",
-              "  if (j && j.id) { pm.environment.set('userId', j.id + ''); }",
+              "  if (j && j.id) { pm.collectionVariables.set('userId', j.id + ''); }",
               "}"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "06 - Validate token",
-      "request": {
-        "method": "POST",
-        "header": [ { "key": "Content-Type", "value": "application/json" } ],
-        "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{rawToken}}\",\n  \"username\": \"{{username}}\"\n}", "options": { "raw": { "language": "json" } } },
-        "url": { "raw": "{{baseUrl}}/validate", "host": [ "{{baseUrl}}/validate" ] }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Validate returns 200', function () { pm.response.to.have.status(200); });",
-              "var j = pm.response.json();",
-              "if (j && j.valid) { pm.environment.set('validated', 'true'); }"
             ]
           }
         }

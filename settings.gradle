@@ -17,6 +17,7 @@ pluginManagement {
 rootProject.name = 'iwa-microservices'
 
 include 'libs:contracts'
+include 'apps:auth-server'
 include 'apps:gateway'
 include 'services:catalog'
 include 'services:orders'

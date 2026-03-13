@@ -34,6 +34,7 @@ public class CustomerRepository {
             "first_name VARCHAR(100), " +
             "last_name VARCHAR(100), " +
             "phone VARCHAR(20), " +
+            "ssn VARCHAR(11), " +
             "address VARCHAR(255), " +
             "city VARCHAR(100), " +
             "state VARCHAR(50), " +
@@ -42,14 +43,14 @@ public class CustomerRepository {
             "last_login TIMESTAMP, " +
             "is_active BOOLEAN)"
         );
-        
-        // Insert test users with plain text passwords
+
+        // Insert test users with plain text passwords and SSNs
         String insertSql = "INSERT INTO customers (username, password, email, first_name, last_name, " +
-                          "phone, created_at, is_active) VALUES " +
-                          "('admin', 'admin123', 'admin@pharmacy.com', 'Admin', 'User', '555-0001', CURRENT_TIMESTAMP, true), " +
-                          "('john.doe', 'password123', 'john.doe@example.com', 'John', 'Doe', '555-0002', CURRENT_TIMESTAMP, true), " +
-                          "('jane.smith', 'pass1234', 'jane.smith@example.com', 'Jane', 'Smith', '555-0003', CURRENT_TIMESTAMP, true)";
-        
+                          "phone, ssn, created_at, is_active) VALUES " +
+                          "('admin', 'password', 'admin@pharmacy.com', 'Admin', 'User', '555-0001', '000-00-0001', CURRENT_TIMESTAMP, true), " +
+                          "('user1', 'password', 'user1@example.com', 'First', 'User', '555-0002', '111-11-1111', CURRENT_TIMESTAMP, true), " +
+                          "('user2', 'password', 'user2@example.com', 'Second', 'User', '555-0003', '222-22-2222', CURRENT_TIMESTAMP, true)";
+
         try {
             jdbcTemplate.execute(insertSql);
         } catch (Exception e) {
@@ -100,8 +101,8 @@ public class CustomerRepository {
      */
     public Customer createCustomer(Customer customer) {
         String sql = "INSERT INTO customers (username, password, email, first_name, last_name, " +
-                    "phone, address, city, state, zip_code, created_at, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
+                    "phone, ssn, address, city, state, zip_code, created_at, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
         jdbcTemplate.update(sql, 
             customer.getUsername(),
             customer.getPassword(), // Stored in plain text
@@ -109,6 +110,7 @@ public class CustomerRepository {
             customer.getFirstName(),
             customer.getLastName(),
             customer.getPhone(),
+            customer.getSsn(),
             customer.getAddress(),
             customer.getCity(),
             customer.getState(),
@@ -131,7 +133,7 @@ public class CustomerRepository {
      */
     public Customer updateCustomer(Customer customer) {
         String sql = "UPDATE customers SET username = ?, password = ?, email = ?, first_name = ?, last_name = ?, " +
-                     "phone = ?, address = ?, city = ?, state = ?, zip_code = ? WHERE id = ?";
+                     "phone = ?, ssn = ?, address = ?, city = ?, state = ?, zip_code = ? WHERE id = ?";
 
         int rows = jdbcTemplate.update(sql,
             customer.getUsername(),
@@ -140,6 +142,7 @@ public class CustomerRepository {
             customer.getFirstName(),
             customer.getLastName(),
             customer.getPhone(),
+            customer.getSsn(),
             customer.getAddress(),
             customer.getCity(),
             customer.getState(),
@@ -161,6 +164,8 @@ public class CustomerRepository {
             customer.setFirstName(rs.getString("first_name"));
             customer.setLastName(rs.getString("last_name"));
             customer.setPhone(rs.getString("phone"));
+            // Map SSN from DB
+            customer.setSsn(rs.getString("ssn"));
             customer.setAddress(rs.getString("address"));
             customer.setCity(rs.getString("city"));
             customer.setState(rs.getString("state"));

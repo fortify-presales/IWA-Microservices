@@ -34,6 +34,9 @@ public class GatewayConfig {
     @Value("${services.notifications.url}")
     private String notificationsServiceUrl;
     
+    @Value("${services.auth.url}")
+    private String authServiceUrl;
+
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
@@ -72,6 +75,19 @@ public class GatewayConfig {
                 .path("/api/notifications/**")
                 .uri(notificationsServiceUrl))
             
+            // Auth Server routes
+            .route("auth-login", r -> r
+                .path("/login", "/logout")
+                .uri(authServiceUrl))
+
+            .route("auth-oauth2", r -> r
+                .path("/oauth2/**")
+                .uri(authServiceUrl))
+
+            .route("auth-oidc", r -> r
+                .path("/.well-known/**")
+                .uri(authServiceUrl))
+
             .build();
     }
 }

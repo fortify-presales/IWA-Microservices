@@ -102,14 +102,3 @@ sourceanalyzer -b IWA-Microservices -scan -f IWA-Microservices.fpr
 ```
 
 2. Open `IWA-Microservices.fpr` with Audit Workbench or use your Fortify workflow to review findings.
-
-**Notes on safe testing vs exploitation**
-- This document is intended to help security teams and developers find and fix issues. It deliberately avoids providing exploit payloads or step-by-step attack instructions.
-- If you need runnable proofs-of-concept for a controlled lab (e.g., to demonstrate an issue to auditors), I can prepare benign, controlled PoCs that do not execute arbitrary code — but I will not produce destructive or RCE-capable payloads.
-
-**Next steps**
-- Run Fortify SCA on the repository and share the report; I can summarize and map findings to the code locations above.
-- Add safe, fixed implementations next to each vulnerable endpoint for comparison (I can implement these).
-- Add tests or staging harnesses to exercise the vulnerable endpoints safely.
-
-If you'd like, I will run a Fortify scan now and produce a findings summary mapped to the changed files.

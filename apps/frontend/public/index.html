@@ -201,10 +201,17 @@
                     </div>
                     
                     <div class="service-card">
+                        <h3>Auth Server</h3>
+                        <p>OAuth2 Authorization Server (demo)</p>
+                        <p><a href="http://localhost:9000/.well-known/openid-configuration">http://localhost:9000</a></p>
+                        <span class="vulnerability-tag">Insecure Config</span>
+                    </div>
+
+                    <div class="service-card">
                         <h3>API Gateway</h3>
-                        <p>Central routing gateway</p>
+                        <p>Central routing gateway (JWT scope enforcement)</p>
                         <p><a href="http://localhost:8080/health">http://localhost:8080/health</a></p>
-                        <span class="vulnerability-tag">No Auth</span>
+                        <span class="vulnerability-tag">Scope-based Auth</span>
                     </div>
                 </div>
             </div>
@@ -214,9 +221,9 @@
                 <h3>SQL Injection (Catalog)</h3>
                 <code>curl "http://localhost:8081/api/products/search?q=test' OR '1'='1"</code>
                 
-                <h3 style="margin-top: 15px;">Authentication Bypass (Customers)</h3>
-                <code>curl -X POST http://localhost:8082/api/customers/login -H "Content-Type: application/json" -d '{"username":"admin","password":"x' OR '1'='1"}'</code>
-                
+                <h3 style="margin-top: 15px;">Authentication (OAuth2 Token + Customers API)</h3>
+                <code>curl -X POST http://localhost:9000/oauth2/token -d "grant_type=client_credentials&amp;client_id=gateway-client&amp;client_secret=gateway-secret&amp;scope=customers.read"</code>
+
                 <h3 style="margin-top: 15px;">IDOR (Orders)</h3>
                 <code>curl http://localhost:8083/api/orders/1</code>
                 <br>
