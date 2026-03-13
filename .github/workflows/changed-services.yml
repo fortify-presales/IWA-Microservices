@@ -110,11 +110,11 @@ jobs:
           fi
           # decide path
           if [ "$s" = "gateway" ]; then
-            path="./apps/gateway"
+            path="apps/gateway"
           elif [ "$s" = "auth-server" ]; then
-            path="./apps/auth-server"
+            path="apps/auth-server"
           else
-            path="./services/$s"
+            path="services/$s"
           fi
           printf '{"service":"%s","path":"%s"}' "$s" "$path" >> matrix.json
         done
