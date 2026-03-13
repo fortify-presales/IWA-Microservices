@@ -53,7 +53,7 @@ public class ProductRepository {
                           "('Vitamin D3 1000IU', 'Vitamin D supplement', 'Vitamins', 12.99, 200, false, 'NutriLife', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Cetirizine 10mg', 'Non-drowsy antihistamine for allergy relief', 'Allergy', 7.49, 180, false, 'AllerFree', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Omeprazole 20mg', 'Proton pump inhibitor for acid reflux', 'Gastrointestinal', 15.99, 120, true, 'GastroHeal', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
-                          "('Metformin 500mg', 'Blood sugar control for type 2 diabetes', 'Diabetes', 11.99, 90, true, 'GlucoCare', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
+                          "('Metformin 500mg', 'Blood sugar control for type 2 diabetes', 'Diabetes', 12.99, 90, true, 'GlucoCare', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Salbutamol Inhaler', 'Bronchodilator for asthma and COPD relief', 'Respiratory', 29.99, 60, true, 'BreatheWell', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Hydrocortisone Cream 1%', 'Topical corticosteroid for skin irritation', 'Dermatology', 6.49, 140, false, 'SkinRelief', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
                           "('Probiotic Capsules', 'Daily probiotic supplement for gut health', 'Supplements', 18.99, 130, false, 'BioFlora', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), " +
