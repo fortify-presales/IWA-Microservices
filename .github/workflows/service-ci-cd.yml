@@ -149,6 +149,8 @@ jobs:
       timeout-minutes: 240
       #working-directory: ${{ inputs.path }}
       run: |
+        cd ${{ inputs.path }}
+        fcli tool sc-client run -- package -bt gradle -bf .\build.gradle -bc "build -x test"
         fcli action run ci
       env:
         FOD_URL: ${{ vars.FOD_URL }}
@@ -156,7 +158,8 @@ jobs:
         FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
         FOD_RELEASE: "${{ vars.FOD_APPLICATION }}${{ vars.FOD_APP_NAME_POSTFIX }}:${{ inputs.service }}:${{ github.ref_name }}"
         SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}{1}:{2}:{3}" --sdlc-status Development --app-owner {4} --assessment-type "{5}"', vars.FOD_APPLICATION, vars.FOD_APP_NAME_POSTFIX, inputs.service, env.PARENT_BRANCH, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
-        PACKAGE_EXTRA_OPTS: -bt gradle -bf build.gradle -bc "${{ inputs.target}} -x test"
+        USE_PACKAGE: "fortifypackage.zip"
+        #PACKAGE_EXTRA_OPTS: -bt gradle -bf build.gradle -bc "clean -x test"
         #SOURCE_DIR: ${{ inputs.path }}
         DO_SETUP: true
         DO_SAST_SCAN: true
