@@ -9,6 +9,9 @@ on:
       path:
         required: true
         type: string
+      target:
+        required: true
+        type: string
       deploy:
         required: false
         type: boolean
@@ -85,13 +88,11 @@ jobs:
 
     - name: Build with Gradle
       run: |
-        cd "${{ inputs.path }}"
-        ./gradlew build -x test
+        ./gradlew ${{ inputs.target }} -x test
 
     - name: Run tests
       run: |
-        cd "${{ inputs.path }}"
-        ./gradlew test || true
+        ./gradlew ${{ inputs.target }} || true
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
@@ -148,14 +149,14 @@ jobs:
       timeout-minutes: 240
       #working-directory: ${{ inputs.path }}
       run: |
-        cd ${{ inputs.path }} && fcli action run ci
+        fcli action run ci
       env:
         FOD_URL: ${{ vars.FOD_URL }}
         FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
         FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
         FOD_RELEASE: "${{ vars.FOD_APPLICATION }}${{ vars.FOD_APP_NAME_POSTFIX }}:${{ inputs.service }}:${{ github.ref_name }}"
         SETUP_EXTRA_OPTS: ${{ format('--copy-from "{0}{1}:{2}:{3}" --sdlc-status Development --app-owner {4} --assessment-type "{5}"', vars.FOD_APPLICATION, vars.FOD_APP_NAME_POSTFIX, inputs.service, env.PARENT_BRANCH, vars.FOD_DEFAULT_OWNER, vars.FOD_DEFAULT_ASSESSMENT_TYPE) }}
-        PACKAGE_EXTRA_OPTS: -bt gradle -bf build.gradle -bc "clean build -x test"
+        PACKAGE_EXTRA_OPTS: -bt gradle -bf build.gradle -bc "${{ inputs.target}} -x test"
         #SOURCE_DIR: ${{ inputs.path }}
         DO_SETUP: true
         DO_SAST_SCAN: true

@@ -116,7 +116,15 @@ jobs:
           else
             path="services/$s"
           fi
-          printf '{"service":"%s","path":"%s"}' "$s" "$path" >> matrix.json
+          # decide target
+          if [ "$s" = "gateway" ]; then
+            target=":apps:gateway:build"
+          elif [ "$s" = "auth-server" ]; then
+            target=":apps:auth-server:build"
+          else
+            target=":services:$s:build"
+          fi
+          printf '{"service":"%s","path":"%s", "target":"%s"}' "$s" "$path" "$target" >> matrix.json
         done
         echo ']}' >> matrix.json
         cat matrix.json
@@ -173,6 +181,7 @@ jobs:
     with:
       service: ${{ matrix.service }}
       path: ${{ matrix.path }}
+      target: ${{ matrix.target }}
       deploy: ${{ github.ref == 'refs/heads/main' }}
       fortify: true
 
