@@ -139,11 +139,9 @@ jobs:
 
     - name: Run Fortify Security scan
       if: ${{ inputs.fortify == true }}
-      #uses: fortify/github-action@v3
-      uses: fortify/github-action@feat/fcli-ci
+      uses: fortify/github-action@v3
       env:
         SOURCE_DIR: ${{ inputs.path }}
-        FCLI_BOOTSTRAP_URL: https://github.com/fortify/fcli/releases/download/dev_v3.x/fcli-linux.tgz
         FOD_URL: ${{ vars.FOD_URL }}
         FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
         FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
